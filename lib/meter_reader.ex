@@ -20,7 +20,7 @@ defmodule MeterReader.MeterReader do
 
   @impl true
   def handle_info(:open_port, state) do
-    Circuits.UART.open(state.uart_pid, state.p1_config.port,
+    Circuits.UART.open(state.uart_pid, state.p1_config[:port],
       speed: 115_200,
       data_bits: 7,
       stop_bits: 1,

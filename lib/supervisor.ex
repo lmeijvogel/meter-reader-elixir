@@ -8,7 +8,7 @@ defmodule MeterReader.Supervisor do
   @impl true
   def init(:ok) do
     children = [
-      {MeterReader.MeterReader, %{port: Application.get_env(:meter_reader, :p1_port)}},
+      {MeterReader.MeterReader, port: Application.get_env(:meter_reader, :p1_port)},
       MeterReader.P1Store
     ]
 
