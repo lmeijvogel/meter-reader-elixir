@@ -1,5 +1,39 @@
 # MeterReader
 
+## Services
+
+The current meter-reader service uses a few services to store data:
+
+### InfluxDB
+
+This is my main storage: The web app will query this. Currently every measurement is stored (every second D:).
+
+### MySQL / MariaDB
+
+I use this as a backup store: Every 15m, the current p1 measurement, augmented with the number of water "ticks" is stored.
+
+### Redis
+
+The Redis instance on the meter-reader host only stores data in-memory.
+
+It is used to store:
+* `water_meter_last_ticks`: The last two ticks, to determine the current water usage.
+* `water_count` -- This is the cumulative number of ticks: This is added to each MySQL measurement
+
+Some other fields are filled but seem to not be used:
+
+* `water_meter_water_count` -- This is the default name that stores the cumulative number of "ticks".
+
+Both of these can be replaced by Elixir agents.
+
+## Mysql
+
+Currently trying plain SQL via MyXQL: https://github.com/elixir-ecto/myxql
+
+## InfluxDB
+
+Nothing yet, will try https://github.com/mneudert/instream
+
 ## Example P1 report
 ```
 /ABCDEFGHI-METER

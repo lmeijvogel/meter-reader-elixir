@@ -24,3 +24,5 @@ meter_reader-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+config/dev.exs
+config/prod.exs

@@ -22,7 +22,12 @@ defmodule MeterReader.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:circuits_uart, "~> 1.5"}
+      {:circuits_uart, "~> 1.5"},
+      {:myxql, "~> 0.6.0"},
+      {:instream, "~> 2.0"},
+      {:tzdata, "~> 1.1"},
+      {:jason, "~> 1.3"},
+      {:req, "~> 0.3.0"}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]
