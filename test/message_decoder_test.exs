@@ -18,10 +18,18 @@ defmodule MessageDecoderTest do
     assert state == %{}
   end
 
+  test "decode timestamp" do
+    {:added, state} = @subject.decode("/KFM5KAIFA-METER", %{})
+    {:added, state} = @subject.decode("0-0:1.0.0(240228101631W)", state)
+    {:done, state} = @subject.decode("!E62D", state)
+
+    assert state.timestamp == "2024-02-28 10:16:31"
+  end
+
   test "decode levering_current" do
     {:added, state} = @subject.decode("/ABCDEFGHI-METER", %{})
-    {:added, state} = @subject.decode("1-0:22.7.0(00.168*kW)", state)
-    {:done, state} = @subject.decode("!E62D", state)
+    {:added, state} = @subject.decode("1-0:2.7.0(00.168*kW)", state)
+    {:done, state} = @subject.decode("!3C07", state)
 
     assert state.levering_current == 168
   end
@@ -29,7 +37,7 @@ defmodule MessageDecoderTest do
   test "decode levering_dal" do
     {:added, state} = @subject.decode("/ABCDEFGHI-METER", %{})
     {:added, state} = @subject.decode("1-0:2.8.1(000934.490*kWh)", state)
-    {:done, state} = @subject.decode("!E62D", state)
+    {:done, state} = @subject.decode("!AFFE", state)
 
     assert state.levering_dal == 934.490
   end

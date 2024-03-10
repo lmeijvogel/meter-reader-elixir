@@ -1,7 +1,6 @@
 import Config
 
 config :meter_reader,
-  test_mode: true,
   solar_edge_api_key: "12345",
   solar_edge_site_id: "12345",
   # Backends
@@ -27,13 +26,19 @@ config :meter_reader, :p1_reader,
   stop_bits: 1,
   parity: :even
 
+config :meter_reader, :solar_edge,
+  host: "http://127.0.0.1:8080/"
+  site_id: "12345",
+  api_key: "abcdefg"
+
 shared_influx_config = [
   auth: [
     method: :token,
-    token: ""
+    token: "<FILL IN YOUR TOKEN HERE>"
   ],
   org: "home",
-  host: "127.0.0.1",
+  # Statically configured on VM
+  host: "192.168.56.8",
   version: :v2
 ]
 
@@ -42,9 +47,3 @@ config :meter_reader, Backends.InfluxConnection, shared_influx_config ++ [bucket
 config :meter_reader,
        Backends.InfluxTemporaryDataConnection,
        shared_influx_config ++ [bucket: "readings_last_hour"]
-
-config :meter_reader, :solar_edge,
-  start: false,
-  host: "",
-  site_id: "",
-  api_key: ""
