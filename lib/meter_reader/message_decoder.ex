@@ -1,13 +1,25 @@
 defmodule MeterReader.MessageDecoder do
+  @moduledoc """
+  Decodes incoming P1 messages.
+
+  P1 messages are received line-by-line, so we can only
+  return a complete message when all processing is done.
+
+  To make this work, `decode` either returns
+  - {:added, decoded_message} which means that we're in progress but line was added,
+  - {:done, decoded_message}, which means that the message is complete. `decoded_message` can be used.
+  """
   def decode("", _, state) do
     {:added, state}
   end
 
   def decode(line, message_start_marker, state) do
     cond do
+      # The message start marker starts with `/` and a known string
       String.starts_with?(line, message_start_marker) ->
         {:added, %{}}
 
+      # The message end marker starts with `!` and a random string of 4 alphanumeric chars.
       String.starts_with?(line, "!") ->
         {:done, state}
 

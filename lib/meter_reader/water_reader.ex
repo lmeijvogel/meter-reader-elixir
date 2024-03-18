@@ -45,8 +45,6 @@ defmodule MeterReader.WaterReader do
 
   @impl true
   def handle_info({:circuits_uart, _uart_port, data}, state) do
-    Logger.debug("WaterReader: Received '#{data}'")
-
     if is_usage_message(data) do
       MeterReader.DataDispatcher.water_tick_received()
     end
@@ -54,6 +52,21 @@ defmodule MeterReader.WaterReader do
     {:noreply, state}
   end
 
+  @doc """
+  Determines whether water was actually consumed.
+
+  A message is either "TICK <nnn>" or "USAGE <nnn>".
+
+  TICK is just a clock tick to make it obvious that the detector is
+  running. USAGE is an actual registration of water consumption.
+
+  The <nnn> is a number that can be ignored: It is the measured
+  reflected amount of light. It is there for in case debugging is
+  necessary, e.g. when a new water meter is installed, reflective
+  values of the gauge are typically different, so the threshold values
+  should change. Having the values in the output makes that a tiny
+  bit easier.
+  """
   def is_usage_message(message) do
     String.match?(message, ~r[USAGE])
   end

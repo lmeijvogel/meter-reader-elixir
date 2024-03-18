@@ -14,10 +14,6 @@ defmodule MeterReader.P1Reader do
     {:ok, %{uart_pid: uart_pid, p1_config: p1_config, decoded_message: %{}}}
   end
 
-  @moduledoc """
-  Documentation for `MeterReader`.
-  """
-
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
