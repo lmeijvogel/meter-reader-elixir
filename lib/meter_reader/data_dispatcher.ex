@@ -2,6 +2,26 @@ defmodule MeterReader.DataDispatcher do
   require Logger
   use GenServer
 
+  @moduledoc """
+  This module is responsible for receiving all data that is sent to us - Water and P1 energy - and
+  sending it to the various backends.
+
+  SolarEdge data does not go through this module.
+
+  When a water tick is received, it is immediately sent to InfluxDB. When the
+  current P1 readings are received, the message is kept in state and the
+  current energy usage/generation is sent to a temporary InfluxDB backend that
+  deletes older data.
+
+  The permanent data is stored at intervals to not fill up the data stores too quickly.
+
+  To do this, it keeps the latest P1 message -- its data is cumulative. The latest message
+  is then sent to the backends.
+
+  For Influx, only the P1 data is stored -- Water data is already in Influx.
+  For SQL, the current water "tick" is retrieved and is sent along with the P1 data.
+  """
+
   def init(opts) do
     state = %{
       db_save_interval_in_seconds: opts[:db_save_interval_in_seconds],
