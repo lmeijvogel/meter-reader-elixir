@@ -1,4 +1,5 @@
 defmodule Backends.InfluxBackend do
+  require Logger
   use GenServer
 
   def init(_opts) do
@@ -6,7 +7,11 @@ defmodule Backends.InfluxBackend do
   end
 
   def store_p1(message) do
-    GenServer.call(__MODULE__, {:store_p1, message})
+    GenServer.cast(__MODULE__, {:store_p1, message})
+  end
+
+  def store_temporary_p1(message) do
+    GenServer.cast(__MODULE__, {:store_temporary_p1, message})
   end
 
   def store_water_tick do
@@ -21,13 +26,17 @@ defmodule Backends.InfluxBackend do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  def handle_call({:store_p1, message}, _from, state) do
+  def handle_cast({:store_p1, message}, state) do
     Backends.InfluxConnection.write([
       create_point("levering", message[:levering_dal] + message[:levering_piek]),
       create_point("stroom", message[:stroom_dal] + message[:stroom_piek]),
       create_point("gas", message[:gas])
     ])
 
+    {:noreply, state}
+  end
+
+  def handle_cast({:store_temporary_p1, message}, state) do
     :ok =
       Backends.InfluxTemporaryDataConnection.write([
         %{
@@ -36,7 +45,7 @@ defmodule Backends.InfluxBackend do
         }
       ])
 
-    {:reply, :ok, state}
+    {:noreply, state}
   end
 
   def handle_cast({:store_water_tick}, state) do
@@ -54,15 +63,17 @@ defmodule Backends.InfluxBackend do
 
         %{
           measurement: "opwekking",
-          fields: %{opwekking: el[:value]},
+          fields: %{opwekking: round(el[:value])},
           timestamp: timestamp
         }
       end)
 
-    Backends.InfluxConnection.write(mapped_data,
-      precision: :second
-    )
+    result =
+      Backends.InfluxConnection.write(mapped_data,
+        precision: :second
+      )
 
+    Logger.info("SolarEdge Influx => #{result |> inspect}")
     {:noreply, state}
   end
 

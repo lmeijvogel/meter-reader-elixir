@@ -1,4 +1,5 @@
 defmodule MeterReader.WaterReader do
+  require Logger
   use GenServer
 
   @impl true
@@ -36,7 +37,7 @@ defmodule MeterReader.WaterReader do
 
   @impl true
   def handle_info({:circuits_uart, _uart_port, {:error, reason}}, state) do
-    IO.puts("ERROR")
+    Logger.error("WaterReader: ERROR: #{reason}")
     IO.puts(reason)
 
     {:noreply, state}
@@ -44,6 +45,8 @@ defmodule MeterReader.WaterReader do
 
   @impl true
   def handle_info({:circuits_uart, _uart_port, data}, state) do
+    Logger.debug("WaterReader: Received '#{data}'")
+
     if is_usage_message(data) do
       MeterReader.DataDispatcher.water_tick_received()
     end

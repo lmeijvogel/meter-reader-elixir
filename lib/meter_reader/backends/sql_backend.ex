@@ -1,4 +1,5 @@
 defmodule Backends.SqlBackend do
+  require Logger
   use GenServer
 
   def init(:ok) do
@@ -9,11 +10,13 @@ defmodule Backends.SqlBackend do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def save(p1_message) do
-    GenServer.call(__MODULE__, {:save, p1_message})
+  def save(p1_message, water_ticks) do
+    GenServer.call(__MODULE__, {:save, p1_message, water_ticks})
   end
 
-  def handle_call({:save, p1_message}, _from, state) do
+  def handle_call({:save, p1_message, water_ticks}, _from, state) do
+    Logger.debug("Saving p1 message: #{inspect(p1_message)}")
+
     query =
       "INSERT INTO measurements(time_stamp, time_stamp_utc, stroom, levering, gas, water) VALUES(
     ?,
@@ -24,8 +27,6 @@ defmodule Backends.SqlBackend do
     ?)"
 
     {:ok, now} = DateTime.now("Etc/UTC")
-
-    water_ticks = MeterReader.WaterTickStore.get()
 
     params = [
       p1_message[:timestamp],

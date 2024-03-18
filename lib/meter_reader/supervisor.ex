@@ -8,15 +8,17 @@ defmodule MeterReader.Supervisor do
   @impl true
   def init(:ok) do
     children = [
+      {MyXQL, myqxl_config()},
       Backends.SqlBackend,
       Backends.InfluxConnection,
       Backends.InfluxTemporaryDataConnection,
       Backends.InfluxBackend,
-      {MyXQL, myqxl_config()},
       {MeterReader.WaterTickStore, get_start_data: !test_mode()},
       {MeterReader.DataDispatcher,
        db_save_interval_in_seconds:
          Application.get_env(:meter_reader, :db_save_interval_in_seconds),
+       influx_save_interval_in_seconds:
+         Application.get_env(:meter_reader, :influx_save_interval_in_seconds),
        start: !test_mode()},
       {MeterReader.WaterReader, water_reader_config()},
       {MeterReader.P1Reader, p1_reader_config()},
@@ -27,13 +29,10 @@ defmodule MeterReader.Supervisor do
   end
 
   def myqxl_config do
-    [
-      hostname: Application.get_env(:meter_reader, :db_hostname),
-      username: Application.get_env(:meter_reader, :db_username),
-      password: Application.get_env(:meter_reader, :db_password),
-      database: Application.get_env(:meter_reader, :db_database),
-      name: :myxql
-    ]
+    Application.get_env(:meter_reader, :sql) ++
+      [
+        name: :myxql
+      ]
   end
 
   def water_reader_config do

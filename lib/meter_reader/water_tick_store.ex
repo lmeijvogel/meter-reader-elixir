@@ -1,12 +1,13 @@
 defmodule MeterReader.WaterTickStore do
+  require Logger
   use GenServer
 
   def init(opts) do
     if opts[:get_start_data] do
-      Process.send_after(__MODULE__, :init_last_measurement, 0)
+      {:ok, %{water: nil}, {:continue, :init_last_measurement}}
+    else
+      {:ok, %{water: 0}}
     end
-
-    {:ok, %{water: 0}}
   end
 
   def get() do
@@ -26,14 +27,24 @@ defmodule MeterReader.WaterTickStore do
   end
 
   def handle_cast(:increment, state) do
+    Logger.debug("WaterTickStore: Incrementing #{state[:water]} => #{state[:water] + 1}")
     {:noreply, %{state | water: state[:water] + 1}}
   end
 
-  def handle_info(:init_last_measurement, state) do
+  def handle_continue(:init_last_measurement, state) do
+    :timer.sleep(2000)
+
+    Logger.debug("WaterTickStore :init_last_measurement")
+
     query = "SELECT water FROM measurements ORDER BY id DESC LIMIT 1"
 
+    :timer.sleep(5000)
     {:ok, %MyXQL.Result{rows: [row]}} = MyXQL.query(:myxql, query)
 
-    {:noreply, %{state | water: Enum.at(row, 0)}}
+    value = Enum.at(row, 0)
+
+    Logger.debug("WaterTickStore: got value #{value}")
+
+    {:noreply, %{state | water: value}}
   end
 end
