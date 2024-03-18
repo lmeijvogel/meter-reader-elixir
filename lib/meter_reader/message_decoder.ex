@@ -1,25 +1,22 @@
 defmodule MeterReader.MessageDecoder do
-  def decode("!E62D", state) do
-    {:done, state}
-  end
-
-  def decode("/ABCDEFGHI-METER", _) do
-    {:added, %{}}
-  end
-
-  def decode("", state) do
+  def decode("", _, state) do
     {:added, state}
   end
 
-  def decode(line, state) do
-    if String.starts_with?(line, "!") do
-      {:done, state}
-    else
-      [field | values] = String.split(line, ~r{[()]}, trim: true)
+  def decode(line, message_start_marker, state) do
+    cond do
+      String.starts_with?(line, message_start_marker) ->
+        {:added, %{}}
 
-      updated_state = parse_parts(field, values, state)
+      String.starts_with?(line, "!") ->
+        {:done, state}
 
-      {:added, updated_state}
+      true ->
+        [field | values] = String.split(line, ~r{[()]}, trim: true)
+
+        updated_state = parse_parts(field, values, state)
+
+        {:added, updated_state}
     end
   end
 

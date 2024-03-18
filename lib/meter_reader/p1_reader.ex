@@ -1,4 +1,6 @@
 defmodule MeterReader.P1Reader do
+  require Logger
+
   use GenServer
 
   @impl true
@@ -46,7 +48,12 @@ defmodule MeterReader.P1Reader do
   end
 
   def handle_info({:circuits_uart, _uart_port, data}, state) do
-    {response, decoded_message} = MeterReader.MessageDecoder.decode(data, state.decoded_message)
+    {response, decoded_message} =
+      MeterReader.MessageDecoder.decode(
+        data,
+        state.p1_config[:message_start_marker],
+        state.decoded_message
+      )
 
     if response == :done do
       MeterReader.DataDispatcher.p1_message_received(decoded_message)

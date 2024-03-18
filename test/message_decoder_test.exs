@@ -5,88 +5,116 @@ defmodule MessageDecoderTest do
   @subject MeterReader.MessageDecoder
 
   test "decode start of message" do
-    result = @subject.decode("/ABCDEFGHI-METER", %{})
+    message_start_marker = "/ABCDEFGHI-METER"
+
+    result = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{})
 
     assert result == {:added, %{}}
   end
 
   test "decode empty line" do
-    {:added, state} = @subject.decode("/ABCDEFGHI-METER", %{})
-    {:added, state} = @subject.decode("", state)
-    {:done, state} = @subject.decode("!E62D", state)
+    message_start_marker = "/ABCDEFGHI-METER"
+
+    {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{})
+    {:added, state} = @subject.decode("", message_start_marker, state)
+    {:done, state} = @subject.decode("!E62D", message_start_marker, state)
 
     assert state == %{}
   end
 
   test "decode timestamp" do
-    {:added, state} = @subject.decode("/KFM5KAIFA-METER", %{})
-    {:added, state} = @subject.decode("0-0:1.0.0(240228101631W)", state)
-    {:done, state} = @subject.decode("!E62D", state)
+    message_start_marker = "/ABCDEFGHI-METER"
+
+    {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{})
+    {:added, state} = @subject.decode("0-0:1.0.0(240228101631W)", message_start_marker, state)
+    {:done, state} = @subject.decode("!E62D", message_start_marker, state)
 
     assert state.timestamp == "2024-02-28 10:16:31"
   end
 
   test "decode levering_current" do
-    {:added, state} = @subject.decode("/ABCDEFGHI-METER", %{})
-    {:added, state} = @subject.decode("1-0:2.7.0(00.168*kW)", state)
-    {:done, state} = @subject.decode("!3C07", state)
+    message_start_marker = "/ABCDEFGHI-METER"
+
+    {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{})
+    {:added, state} = @subject.decode("1-0:2.7.0(00.168*kW)", message_start_marker, state)
+    {:done, state} = @subject.decode("!3C07", message_start_marker, state)
 
     assert state.levering_current == 168
   end
 
   test "decode levering_dal" do
-    {:added, state} = @subject.decode("/ABCDEFGHI-METER", %{})
-    {:added, state} = @subject.decode("1-0:2.8.1(000934.490*kWh)", state)
-    {:done, state} = @subject.decode("!AFFE", state)
+    message_start_marker = "/ABCDEFGHI-METER"
+
+    {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{})
+    {:added, state} = @subject.decode("1-0:2.8.1(000934.490*kWh)", message_start_marker, state)
+    {:done, state} = @subject.decode("!AFFE", message_start_marker, state)
 
     assert state.levering_dal == 934.490
   end
 
   test "decode levering_piek" do
-    {:added, state} = @subject.decode("/ABCDEFGHI-METER", %{})
-    {:added, state} = @subject.decode("1-0:2.8.2(002115.131*kWh)", state)
-    {:done, state} = @subject.decode("!E62D", state)
+    message_start_marker = "/ABCDEFGHI-METER"
+
+    {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{})
+    {:added, state} = @subject.decode("1-0:2.8.2(002115.131*kWh)", message_start_marker, state)
+    {:done, state} = @subject.decode("!E62D", message_start_marker, state)
 
     assert state.levering_piek == 2115.131
   end
 
   test "decode stroom_current" do
-    {:added, state} = @subject.decode("/ABCDEFGHI-METER", %{})
-    {:added, state} = @subject.decode("1-0:1.7.0(00.300*kW)", state)
-    {:done, state} = @subject.decode("!E62D", state)
+    message_start_marker = "/ABCDEFGHI-METER"
+
+    {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{})
+    {:added, state} = @subject.decode("1-0:1.7.0(00.300*kW)", message_start_marker, state)
+    {:done, state} = @subject.decode("!E62D", message_start_marker, state)
 
     assert state.stroom_current == 300
   end
 
   test "decode stroom_dal" do
-    {:added, state} = @subject.decode("/ABCDEFGHI-METER", %{})
-    {:added, state} = @subject.decode("1-0:1.8.1(003900.313*kWh)", state)
-    {:done, state} = @subject.decode("!E62D", state)
+    message_start_marker = "/ABCDEFGHI-METER"
+
+    {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{})
+    {:added, state} = @subject.decode("1-0:1.8.1(003900.313*kWh)", message_start_marker, state)
+    {:done, state} = @subject.decode("!E62D", message_start_marker, state)
 
     assert state.stroom_dal == 3900.313
   end
 
   test "decode stroom_piek" do
-    {:added, state} = @subject.decode("/ABCDEFGHI-METER", %{})
-    {:added, state} = @subject.decode("1-0:1.8.2(004184.285*kWh)", state)
-    {:done, state} = @subject.decode("!E62D", state)
+    message_start_marker = "/ABCDEFGHI-METER"
+
+    {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{})
+    {:added, state} = @subject.decode("1-0:1.8.2(004184.285*kWh)", message_start_marker, state)
+    {:done, state} = @subject.decode("!E62D", message_start_marker, state)
 
     assert state.stroom_piek == 4184.285
   end
 
   test "decode gas" do
-    {:added, state} = @subject.decode("/ABCDEFGHI-METER", %{})
-    {:added, state} = @subject.decode("0-1:24.2.1(240224163506W)(03991.882*m3)", state)
-    {:done, state} = @subject.decode("!E62D", state)
+    message_start_marker = "/ABCDEFGHI-METER"
+
+    {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{})
+
+    {:added, state} =
+      @subject.decode("0-1:24.2.1(240224163506W)(03991.882*m3)", message_start_marker, state)
+
+    {:done, state} = @subject.decode("!E62D", message_start_marker, state)
 
     assert state.gas == 3991.882
   end
 
   test "decode multiple" do
-    {:added, state} = @subject.decode("/ABCDEFGHI-METER", %{})
-    {:added, state} = @subject.decode("0-1:24.2.1(240224163506W)(03991.882*m3)", state)
-    {:added, state} = @subject.decode("1-0:1.8.2(004184.285*kWh)", state)
-    {:done, state} = @subject.decode("!E62D", state)
+    message_start_marker = "/ABCDEFGHI-METER"
+
+    {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{})
+
+    {:added, state} =
+      @subject.decode("0-1:24.2.1(240224163506W)(03991.882*m3)", message_start_marker, state)
+
+    {:added, state} = @subject.decode("1-0:1.8.2(004184.285*kWh)", message_start_marker, state)
+    {:done, state} = @subject.decode("!E62D", message_start_marker, state)
 
     assert state.gas == 3991.882
     assert state.stroom_piek == 4184.285

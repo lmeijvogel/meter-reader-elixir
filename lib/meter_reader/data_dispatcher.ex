@@ -1,14 +1,16 @@
 defmodule MeterReader.DataDispatcher do
+  require Logger
   use GenServer
 
   def init(opts) do
-    state = %{db_save_interval_in_seconds: opts[:db_save_interval_in_seconds]}
+    state = %{
+      db_save_interval_in_seconds: opts[:db_save_interval_in_seconds],
+      influx_save_interval_in_seconds: opts[:influx_save_interval_in_seconds]
+    }
 
-    # TODO: I don't really like this approach. Since we're receiving messages every 1s anyway
-    # why not use the current time and the previous save time to determine whether we should write
-    # to the database / influx
     if opts[:start] do
-      schedule_next_save(state)
+      schedule_next_sql_save(state)
+      schedule_next_influx_save(state)
     end
 
     {:ok, state}
@@ -31,25 +33,42 @@ defmodule MeterReader.DataDispatcher do
     if valid?(message, state[:last_message]) do
       new_state = Map.put(state, :last_p1_message, message)
 
-      # TODO: Do not write all data every second?
-      save_p1_to_influx(message)
+      Backends.InfluxBackend.store_temporary_p1(message)
 
       {:noreply, new_state}
     else
-      IO.warn("Dropping invalid message")
+      Logger.warning("Dropping invalid message")
 
       {:noreply, state}
     end
   end
 
   def handle_info(:save_to_sql, state) do
-    schedule_next_save(state)
+    schedule_next_sql_save(state)
 
     if Map.has_key?(state, :last_p1_message) do
-      Backends.SqlBackend.save(Map.get(state, :last_p1_message))
+      water_ticks = MeterReader.WaterTickStore.get()
+
+      last_p1_message = Map.get(state, :last_p1_message)
+      Backends.SqlBackend.save(last_p1_message, water_ticks)
+    else
+      Logger.warning("Scheduled saving P1 message to SQL, but no message in store")
     end
 
-    {:noreply, Map.delete(state, :last_p1_message)}
+    {:noreply, state}
+  end
+
+  def handle_info(:save_to_influx, state) do
+    schedule_next_influx_save(state)
+
+    if Map.has_key?(state, :last_p1_message) do
+      Logger.info("Sending P1 message to InfluxDB")
+      Backends.InfluxBackend.store_p1(Map.get(state, :last_p1_message))
+    else
+      Logger.warning("Scheduled saving P1 message to InfluxDB, but no message in store")
+    end
+
+    {:noreply, state}
   end
 
   # Sometimes the measurements are invalid, e.g. a measurement is missing
@@ -66,11 +85,7 @@ defmodule MeterReader.DataDispatcher do
     end
   end
 
-  def save_p1_to_influx(message) do
-    Backends.InfluxBackend.store_p1(message)
-  end
-
-  def schedule_next_save(state) do
+  def schedule_next_sql_save(state) do
     time_until_save =
       MeterReader.IntervalCalculator.seconds_to_next(
         Time.utc_now(),
@@ -78,5 +93,15 @@ defmodule MeterReader.DataDispatcher do
       )
 
     Process.send_after(__MODULE__, :save_to_sql, time_until_save * 1000)
+  end
+
+  def schedule_next_influx_save(state) do
+    time_until_save =
+      MeterReader.IntervalCalculator.seconds_to_next(
+        Time.utc_now(),
+        state[:influx_save_interval_in_seconds]
+      )
+
+    Process.send_after(__MODULE__, :save_to_influx, time_until_save * 1000)
   end
 end

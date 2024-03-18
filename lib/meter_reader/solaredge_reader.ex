@@ -1,4 +1,6 @@
 defmodule MeterReader.SolarEdgeReader do
+  require Logger
+
   use GenServer
 
   def init(opts) do
@@ -34,6 +36,10 @@ defmodule MeterReader.SolarEdgeReader do
         state[:interval_in_seconds],
         state[:interval_offset_in_seconds]
       )
+
+    Logger.debug(
+      "SolarEdgeReader: Scheduling next request at #{NaiveDateTime.to_string(next)} (#{NaiveDateTime.diff(next, now)} seconds)"
+    )
 
     Process.send_after(
       __MODULE__,
@@ -78,14 +84,31 @@ defmodule MeterReader.SolarEdgeReader do
   end
 
   def handle_cast(:retrieve_data, state) do
+    Logger.info("SolarEdgeReader: Retrieving data")
     schedule_next_retrieve(state)
 
+    {:ok, response_body} = perform_api_request(state)
+    {:ok, message} = MeterReader.SolarEdgeMessageDecoder.decode_message(response_body)
+
+    Backends.InfluxBackend.store_solaredge(message[:production])
+
+    {:noreply, state}
+  end
+
+  def handle_info(:retrieve_data, state) do
+    retrieve_data()
+
+    {:noreply, state}
+  end
+
+  def perform_api_request(state) do
     now = NaiveDateTime.local_now()
 
     start_time = NaiveDateTime.new!(now.year, now.month, now.day, 0, 0, 0)
     end_time = NaiveDateTime.new!(now.year, now.month, now.day, 23, 59, 59)
 
     url = "#{state[:host]}/site/#{state[:site_id]}/energyDetails"
+    Logger.debug("SolarEdgeReader: Requesting URL #{url}")
 
     {:ok, response} =
       Req.get(url,
@@ -97,15 +120,6 @@ defmodule MeterReader.SolarEdgeReader do
         ]
       )
 
-    {:ok, message} = MeterReader.SolarEdgeMessageDecoder.decode_message(response.body)
-
-    Backends.InfluxBackend.store_solaredge(message[:production])
-    {:noreply, state}
-  end
-
-  def handle_info(:retrieve_data, state) do
-    retrieve_data()
-
-    {:noreply, state}
+    {:ok, response.body}
   end
 end
