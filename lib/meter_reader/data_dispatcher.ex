@@ -50,26 +50,19 @@ defmodule MeterReader.DataDispatcher do
   end
 
   def handle_cast({:p1_message_received, message}, state) do
-    if valid?(message, state[:last_message]) do
-      new_state = Map.put(state, :last_p1_message, message)
+    Backends.InfluxBackend.store_temporary_p1(message)
 
-      Backends.InfluxBackend.store_temporary_p1(message)
-
-      {:noreply, new_state}
-    else
-      Logger.warning("Dropping invalid message")
-
-      {:noreply, state}
-    end
+    {:noreply, state}
   end
 
   def handle_info(:save_to_sql, state) do
     schedule_next_sql_save(state)
 
-    if Map.has_key?(state, :last_p1_message) do
+    last_p1_message = MeterReader.P1MessageStore.get()
+
+    if last_p1_message != nil do
       water_ticks = MeterReader.WaterTickStore.get()
 
-      last_p1_message = Map.get(state, :last_p1_message)
       Backends.SqlBackend.save(last_p1_message, water_ticks)
     else
       Logger.warning("Scheduled saving P1 message to SQL, but no message in store")
@@ -81,9 +74,11 @@ defmodule MeterReader.DataDispatcher do
   def handle_info(:save_to_influx, state) do
     schedule_next_influx_save(state)
 
-    if Map.has_key?(state, :last_p1_message) do
+    last_p1_message = MeterReader.P1MessageStore.get()
+
+    if last_p1_message != nil do
       Logger.info("Sending P1 message to InfluxDB")
-      Backends.InfluxBackend.store_p1(Map.get(state, :last_p1_message))
+      Backends.InfluxBackend.store_p1(last_p1_message)
     else
       Logger.warning("Scheduled saving P1 message to InfluxDB, but no message in store")
     end

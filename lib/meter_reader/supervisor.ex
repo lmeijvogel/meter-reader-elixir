@@ -14,6 +14,7 @@ defmodule MeterReader.Supervisor do
       Backends.InfluxTemporaryDataConnection,
       Backends.InfluxBackend,
       {MeterReader.WaterTickStore, get_start_data: !test_mode()},
+      {MeterReader.P1MessageStore, :ok},
       {MeterReader.DataDispatcher,
        db_save_interval_in_seconds:
          Application.get_env(:meter_reader, :db_save_interval_in_seconds),
