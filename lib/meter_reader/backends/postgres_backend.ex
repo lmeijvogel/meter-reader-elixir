@@ -39,7 +39,7 @@ defmodule Backends.PostgresBackend do
 
   @impl true
   def handle_call({:store_water}, _from, state) do
-    Logger.debug("Storing water tick in postgres")
+    Logger.debug("PostgresBackend: Storing water tick in postgres")
 
     query = """
       INSERT INTO water(created, usage_dl) VALUES($1::timestamp, $2::integer);

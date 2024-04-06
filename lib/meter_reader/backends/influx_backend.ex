@@ -38,18 +38,21 @@ defmodule Backends.InfluxBackend do
 
   def handle_cast({:store_temporary_p1, message}, state) do
     :ok =
-      Backends.InfluxTemporaryDataConnection.write([
-        %{
-          measurement: "current",
-          fields: %{current: message[:stroom_current], generation: message[:levering_current]}
-        }
-      ])
+      Backends.InfluxTemporaryDataConnection.write(
+        [
+          %{
+            measurement: "current",
+            fields: %{current: message[:stroom_current], generation: message[:levering_current]}
+          }
+        ],
+        log: false
+      )
 
     {:noreply, state}
   end
 
   def handle_cast({:store_water_tick}, state) do
-    Backends.InfluxConnection.write(create_point("water", 0.5))
+    Backends.InfluxConnection.write(create_point("water", 0.5), log: false)
 
     {:noreply, state}
   end

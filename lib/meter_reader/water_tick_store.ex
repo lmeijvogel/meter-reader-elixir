@@ -27,20 +27,18 @@ defmodule MeterReader.WaterTickStore do
   end
 
   def handle_cast(:increment, state) do
-    Logger.debug("WaterTickStore: Incrementing #{state[:water]} => #{state[:water] + 1}")
+    Logger.debug("WaterTickStore: Incrementing => #{state[:water] + 1}")
     {:noreply, %{state | water: state[:water] + 1}}
   end
 
   def handle_continue(:init_last_measurement, state) do
-    Logger.debug("WaterTickStore :init_last_measurement")
-
     query = "SELECT water FROM measurements ORDER BY id DESC LIMIT 1"
 
     {:ok, %MyXQL.Result{rows: [row]}} = MyXQL.query(:myxql, query)
 
     value = Enum.at(row, 0)
 
-    Logger.debug("WaterTickStore: got value #{value}")
+    Logger.debug("WaterTickStore: got value #{value} from MariaDB")
 
     {:noreply, %{state | water: value}}
   end
