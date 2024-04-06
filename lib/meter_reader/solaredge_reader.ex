@@ -37,7 +37,7 @@ defmodule MeterReader.SolarEdgeReader do
         state[:interval_offset_in_seconds]
       )
 
-    Logger.debug(
+    Logger.info(
       "SolarEdgeReader: Scheduling next request at #{NaiveDateTime.to_string(next)} (#{NaiveDateTime.diff(next, now)} seconds)"
     )
 

@@ -32,13 +32,10 @@ defmodule MeterReader.WaterTickStore do
   end
 
   def handle_continue(:init_last_measurement, state) do
-    :timer.sleep(2000)
-
     Logger.debug("WaterTickStore :init_last_measurement")
 
     query = "SELECT water FROM measurements ORDER BY id DESC LIMIT 1"
 
-    :timer.sleep(5000)
     {:ok, %MyXQL.Result{rows: [row]}} = MyXQL.query(:myxql, query)
 
     value = Enum.at(row, 0)
