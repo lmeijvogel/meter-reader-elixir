@@ -10,6 +10,6 @@ defmodule MeterReader.P1MessageStore do
   end
 
   def set(message) do
-    Agent.update(__MODULE__, fn state -> message end)
+    Agent.update(__MODULE__, fn _state -> message end)
   end
 end

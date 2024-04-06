@@ -1,5 +1,4 @@
 defmodule Backends.PostgresBackend do
-  alias Backends.PostgresBackend
   require Logger
   use GenServer
 
@@ -87,7 +86,7 @@ defmodule Backends.PostgresBackend do
         INSERT INTO generation(created, generation_wh) VALUES #{formatted_placeholders}
       """
 
-      {:ok, result} = Postgrex.query(state[:pid], query, params)
+      {:ok, _result} = Postgrex.query(state[:pid], query, params)
     else
       Logger.debug("PostgresBackend: No new SolarEdge entries")
     end
