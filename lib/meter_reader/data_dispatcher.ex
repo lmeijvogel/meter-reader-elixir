@@ -61,15 +61,12 @@ defmodule MeterReader.DataDispatcher do
   def handle_info(:save_to_mysql, state) do
     schedule_next_mysql_save(state)
 
-    last_p1_message = MeterReader.P1MessageStore.get()
-
-    if last_p1_message != nil do
+    with_last_p1_message(fn message ->
       water_ticks = MeterReader.WaterTickStore.get()
 
-      Backends.SqlBackend.save(last_p1_message, water_ticks)
-    else
-      Logger.warning("Scheduled saving P1 message to SQL, but no message in store")
-    end
+      Logger.info("DataDispatcher: Sending P1 message to MySQL")
+      Backends.SqlBackend.save(message, water_ticks)
+    end)
 
     {:noreply, state}
   end
@@ -77,30 +74,33 @@ defmodule MeterReader.DataDispatcher do
   def handle_info(:save_to_influx, state) do
     schedule_next_influx_save(state)
 
-    last_p1_message = MeterReader.P1MessageStore.get()
-
-    if last_p1_message != nil do
-      Logger.info("Sending P1 message to InfluxDB")
-      Backends.InfluxBackend.store_p1(last_p1_message)
-    else
-      Logger.warning("Scheduled saving P1 message to InfluxDB, but no message in store")
-    end
+    with_last_p1_message(fn message ->
+      Logger.info("DataDispatcher: Sending P1 message to InfluxDB")
+      Backends.InfluxBackend.store_p1(message)
+    end)
 
     {:noreply, state}
   end
 
   def handle_info(:save_to_postgres, state) do
     schedule_next_postgres_save(state)
-    last_p1_message = MeterReader.P1MessageStore.get()
 
-    if last_p1_message != nil do
-      Logger.info("Sending P1 message to Postgres")
-      Backends.PostgresBackend.store_p1(last_p1_message)
-    else
-      Logger.warning("Scheduled saving P1 message to Postgres, but no message in store")
-    end
+    with_last_p1_message(fn message ->
+      Logger.info("DataDispatcher: Sending P1 message to Postgres")
+      Backends.PostgresBackend.store_p1(message)
+    end)
 
     {:noreply, state}
+  end
+
+  def with_last_p1_message(callback) do
+    message = MeterReader.P1MessageStore.get()
+
+    if message != nil do
+      callback.(message)
+    else
+      Logger.warning("DataDispatcher: No P1 message in store")
+    end
   end
 
   def schedule_next_mysql_save(state) do
