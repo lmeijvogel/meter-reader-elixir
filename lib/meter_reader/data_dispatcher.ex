@@ -104,35 +104,22 @@ defmodule MeterReader.DataDispatcher do
   end
 
   def schedule_next_mysql_save(state) do
-    time_until_save =
-      MeterReader.IntervalCalculator.seconds_to_next(
-        Time.utc_now(),
-        state[:db_save_interval_in_seconds]
-      )
-
-    Process.send_after(__MODULE__, :save_to_mysql, time_until_save * 1000)
-    Logger.info("Scheduling next MySQL store interval: #{time_until_save}s")
+    schedule_next_save(:save_to_mysql, state[:db_save_interval_in_seconds])
   end
 
   def schedule_next_influx_save(state) do
-    time_until_save =
-      MeterReader.IntervalCalculator.seconds_to_next(
-        Time.utc_now(),
-        state[:influx_save_interval_in_seconds]
-      )
-
-    Process.send_after(__MODULE__, :save_to_influx, time_until_save * 1000)
-    Logger.info("Scheduling next InfluxDB store interval: #{time_until_save}s")
+    schedule_next_save(:save_to_influx, state[:influx_save_interval_in_seconds])
   end
 
   def schedule_next_postgres_save(state) do
-    time_until_save =
-      MeterReader.IntervalCalculator.seconds_to_next(
-        Time.utc_now(),
-        state[:postgres_save_interval_in_seconds]
-      )
+    schedule_next_save(:save_to_postgres, state[:postgres_save_interval_in_seconds])
+  end
 
-    Process.send_after(__MODULE__, :save_to_postgres, time_until_save * 1000)
-    Logger.info("Scheduling next postgres store interval: #{time_until_save}s")
+  def schedule_next_save(message, interval) do
+    time_until_save = MeterReader.IntervalCalculator.seconds_to_next(Time.utc_now(), interval)
+
+    Process.send_after(__MODULE__, message, time_until_save * 1000)
+
+    Logger.info("DataDispatcher: Scheduling next #{message} store interval: #{time_until_save}s")
   end
 end
