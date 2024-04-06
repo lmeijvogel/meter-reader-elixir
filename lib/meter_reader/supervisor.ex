@@ -10,6 +10,7 @@ defmodule MeterReader.Supervisor do
     children = [
       {MyXQL, myqxl_config()},
       Backends.SqlBackend,
+      {Backends.PostgresBackend, Application.get_env(:meter_reader, :postgres)},
       Backends.InfluxConnection,
       Backends.InfluxTemporaryDataConnection,
       Backends.InfluxBackend,
@@ -18,6 +19,8 @@ defmodule MeterReader.Supervisor do
       {MeterReader.DataDispatcher,
        db_save_interval_in_seconds:
          Application.get_env(:meter_reader, :db_save_interval_in_seconds),
+       postgres_save_interval_in_seconds:
+         Application.get_env(:meter_reader, :postgres_save_interval_in_seconds),
        influx_save_interval_in_seconds:
          Application.get_env(:meter_reader, :influx_save_interval_in_seconds),
        start: !test_mode()},

@@ -66,7 +66,7 @@ defmodule MeterReader.SolarEdgeReader do
     else
       tomorrow = NaiveDateTime.add(now, 1, :day)
 
-      # Do not take daylight savings time into account.
+      # Do not take daylight savings time into account for scheduling the retrieval.
       #
       # The worst that can happen is that on the first day after changing the clocks,
       # it will start at 6:00 or at 08:00 instead of 07:00. 
@@ -84,13 +84,19 @@ defmodule MeterReader.SolarEdgeReader do
   end
 
   def handle_cast(:retrieve_data, state) do
-    Logger.info("SolarEdgeReader: Retrieving data")
     schedule_next_retrieve(state)
 
     {:ok, response_body} = perform_api_request(state)
     {:ok, message} = MeterReader.SolarEdgeMessageDecoder.decode_message(response_body)
 
     Backends.InfluxBackend.store_solaredge(message[:production])
+
+    mapped_production =
+      Enum.map(message[:production], fn row ->
+        %{timestamp: DateTime.from_naive!(row.date, "Europe/Amsterdam"), value: row.value}
+      end)
+
+    Backends.PostgresBackend.store_solaredge(mapped_production)
 
     {:noreply, state}
   end

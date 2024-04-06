@@ -25,11 +25,13 @@ defmodule MeterReader.DataDispatcher do
   def init(opts) do
     state = %{
       db_save_interval_in_seconds: opts[:db_save_interval_in_seconds],
+      postgres_save_interval_in_seconds: opts[:postgres_save_interval_in_seconds],
       influx_save_interval_in_seconds: opts[:influx_save_interval_in_seconds]
     }
 
     if opts[:start] do
-      schedule_next_sql_save(state)
+      schedule_next_mysql_save(state)
+      schedule_next_postgres_save(state)
       schedule_next_influx_save(state)
     end
 
@@ -42,6 +44,7 @@ defmodule MeterReader.DataDispatcher do
 
   def water_tick_received do
     Backends.InfluxBackend.store_water_tick()
+    Backends.PostgresBackend.store_water()
     MeterReader.WaterTickStore.increment()
   end
 
@@ -55,8 +58,8 @@ defmodule MeterReader.DataDispatcher do
     {:noreply, state}
   end
 
-  def handle_info(:save_to_sql, state) do
-    schedule_next_sql_save(state)
+  def handle_info(:save_to_mysql, state) do
+    schedule_next_mysql_save(state)
 
     last_p1_message = MeterReader.P1MessageStore.get()
 
@@ -86,28 +89,29 @@ defmodule MeterReader.DataDispatcher do
     {:noreply, state}
   end
 
-  # Sometimes the measurements are invalid, e.g. a measurement is missing
-  # or is lower than the last measurement. In that case drop the message.
-  def valid?(message, last_message) do
-    cond do
-      last_message == nil -> true
-      message[:stroom_piek] < last_message[:stroom_piek] -> false
-      message[:stroom_dal] < last_message[:stroom_dal] -> false
-      message[:levering_piek] < last_message[:levering_piek] -> false
-      message[:levering_dal] < last_message[:levering_dal] -> false
-      message[:gas] < last_message[:gas] -> false
-      true -> true
+  def handle_info(:save_to_postgres, state) do
+    schedule_next_postgres_save(state)
+    last_p1_message = MeterReader.P1MessageStore.get()
+
+    if last_p1_message != nil do
+      Logger.info("Sending P1 message to Postgres")
+      Backends.PostgresBackend.store_p1(last_p1_message)
+    else
+      Logger.warning("Scheduled saving P1 message to Postgres, but no message in store")
     end
+
+    {:noreply, state}
   end
 
-  def schedule_next_sql_save(state) do
+  def schedule_next_mysql_save(state) do
     time_until_save =
       MeterReader.IntervalCalculator.seconds_to_next(
         Time.utc_now(),
         state[:db_save_interval_in_seconds]
       )
 
-    Process.send_after(__MODULE__, :save_to_sql, time_until_save * 1000)
+    Process.send_after(__MODULE__, :save_to_mysql, time_until_save * 1000)
+    Logger.info("Scheduling next MySQL store interval: #{time_until_save}s")
   end
 
   def schedule_next_influx_save(state) do
@@ -118,5 +122,17 @@ defmodule MeterReader.DataDispatcher do
       )
 
     Process.send_after(__MODULE__, :save_to_influx, time_until_save * 1000)
+    Logger.info("Scheduling next InfluxDB store interval: #{time_until_save}s")
+  end
+
+  def schedule_next_postgres_save(state) do
+    time_until_save =
+      MeterReader.IntervalCalculator.seconds_to_next(
+        Time.utc_now(),
+        state[:postgres_save_interval_in_seconds]
+      )
+
+    Process.send_after(__MODULE__, :save_to_postgres, time_until_save * 1000)
+    Logger.info("Scheduling next postgres store interval: #{time_until_save}s")
   end
 end

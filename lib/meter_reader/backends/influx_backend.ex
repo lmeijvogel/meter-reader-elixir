@@ -57,23 +57,34 @@ defmodule Backends.InfluxBackend do
   def handle_cast({:store_solaredge, data}, state) do
     mapped_data =
       Enum.map(data, fn el ->
-        {:ok, datetime_with_tz} = DateTime.from_naive(el[:date], "Europe/Amsterdam")
+        datetime =
+          case DateTime.from_naive(el[:date], "Europe/Amsterdam") do
+            {:ok, datetime_with_tz} -> datetime_with_tz
+            {:gap, _, _} -> nil
+            _ -> raise "Could not parse date #{el[:date] |> inspect}"
+          end
 
-        timestamp = DateTime.to_unix(datetime_with_tz)
+        if datetime do
+          timestamp = DateTime.to_unix(datetime)
 
-        %{
-          measurement: "opwekking",
-          fields: %{opwekking: round(el[:value])},
-          timestamp: timestamp
-        }
+          %{
+            measurement: "opwekking",
+            fields: %{opwekking: round(el[:value])},
+            timestamp: timestamp
+          }
+        else
+          Logger.warning("SolarEdge: Skipping invalid date #{el[:date] |> inspect}")
+          nil
+        end
       end)
 
-    result =
-      Backends.InfluxConnection.write(mapped_data,
+    filtered_mapped_data = Enum.filter(mapped_data, fn el -> el != nil end)
+
+    :ok =
+      Backends.InfluxConnection.write(filtered_mapped_data,
         precision: :second
       )
 
-    Logger.info("SolarEdge Influx => #{result |> inspect}")
     {:noreply, state}
   end
 

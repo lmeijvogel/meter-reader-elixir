@@ -15,7 +15,7 @@ defmodule Backends.SqlBackend do
   end
 
   def handle_call({:save, p1_message, water_ticks}, _from, state) do
-    Logger.debug("Saving p1 message: #{inspect(p1_message)}")
+    Logger.debug("Saving p1 message to MariaDB: #{inspect(p1_message)}")
 
     query =
       "INSERT INTO measurements(time_stamp, time_stamp_utc, stroom, levering, gas, water) VALUES(
