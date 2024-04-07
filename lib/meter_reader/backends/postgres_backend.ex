@@ -31,8 +31,8 @@ defmodule Backends.PostgresBackend do
 
     {:ok, timestamp} = get_timestamp(p1_message)
 
-    {:ok, _} = _store_gas(p1_message, timestamp, state)
-    {:ok, _} = _store_power(p1_message, timestamp, state)
+    {:ok, _} = store_gas(p1_message, timestamp, state)
+    {:ok, _} = store_power(p1_message, timestamp, state)
 
     {:reply, :ok, state}
   end
@@ -56,7 +56,7 @@ defmodule Backends.PostgresBackend do
   end
 
   def handle_call({:store_solaredge, production_data}, _from, state) do
-    existing_timestamps = _existing_timestamps(Date.utc_today(), state)
+    existing_timestamps = existing_timestamps(Date.utc_today(), state)
 
     data_to_insert =
       Enum.reject(production_data, fn row ->
@@ -94,7 +94,7 @@ defmodule Backends.PostgresBackend do
     {:reply, state, state}
   end
 
-  def _store_gas(p1_message, timestamp, state) do
+  defp store_gas(p1_message, timestamp, state) do
     query = """
       INSERT INTO gas(created, cumulative_total_dm3) VALUES($1::timestamp, $2::integer);
     """
@@ -107,7 +107,7 @@ defmodule Backends.PostgresBackend do
     Postgrex.query(state[:pid], query, params)
   end
 
-  def _store_power(p1_message, timestamp, state) do
+  defp store_power(p1_message, timestamp, state) do
     query =
       "INSERT INTO power(created, cumulative_from_network_wh, cumulative_to_network_wh) VALUES($1::timestamp, $2::integer, $3::integer)"
 
@@ -120,7 +120,7 @@ defmodule Backends.PostgresBackend do
     Postgrex.query(state[:pid], query, params)
   end
 
-  def _existing_timestamps(date, state) do
+  defp existing_timestamps(date, state) do
     existing_timestamps_query = "SELECT created FROM generation WHERE created >= $1::date"
 
     {:ok, result} = Postgrex.query(state[:pid], existing_timestamps_query, [date])
