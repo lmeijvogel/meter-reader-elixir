@@ -9,7 +9,7 @@ defmodule MeterReader.Application do
   def start(_type, _args) do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: MeterReader.Supervisor]
+    opts = [strategy: :one_for_one, name: MeterReader.Application]
 
     children =
       [

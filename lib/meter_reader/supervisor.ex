@@ -29,7 +29,7 @@ defmodule MeterReader.Supervisor do
       {MeterReader.SolarEdgeReader, Application.get_env(:meter_reader, :solar_edge)}
     ]
 
-    Supervisor.init(children, strategy: :one_for_one)
+    Supervisor.init(children, strategy: :one_for_one, name: MeterReader.Supervisor)
   end
 
   def myqxl_config do
