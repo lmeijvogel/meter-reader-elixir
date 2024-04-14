@@ -17,8 +17,11 @@ defmodule MeterReader.SolarEdgeMessageDecoder do
 
   def parse_entry(entry) do
     case NaiveDateTime.from_iso8601(entry["date"]) do
-      {:ok, date} -> %{date: date, value: entry["value"]}
-      {:error, _} -> %{date: NaiveDateTime.local_now(), value: nil}
+      {:ok, date} ->
+        %{date: date, value: if(entry["value"] == nil, do: nil, else: entry["value"] |> round)}
+
+      {:error, _} ->
+        %{date: NaiveDateTime.local_now(), value: nil}
     end
   end
 end
