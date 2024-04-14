@@ -9,20 +9,23 @@ defmodule MeterReader.Supervisor do
   def init(:ok) do
     children = [
       {MyXQL, myqxl_config()},
+      {MeterReader.WaterTickStore, get_start_data: !test_mode()},
+      {MeterReader.P1MessageStore, :ok},
       Backends.SqlBackend,
-      {Backends.PostgresBackend, Application.get_env(:meter_reader, :postgres)},
+      {MeterReader.SqlDispatcher,
+       save_interval_in_seconds: Application.get_env(:meter_reader, :db_save_interval_in_seconds),
+       start: !test_mode()},
       Backends.InfluxConnection,
       Backends.InfluxTemporaryDataConnection,
       Backends.InfluxBackend,
-      {MeterReader.WaterTickStore, get_start_data: !test_mode()},
-      {MeterReader.P1MessageStore, :ok},
-      {MeterReader.DataDispatcher,
-       db_save_interval_in_seconds:
-         Application.get_env(:meter_reader, :db_save_interval_in_seconds),
-       postgres_save_interval_in_seconds:
-         Application.get_env(:meter_reader, :postgres_save_interval_in_seconds),
-       influx_save_interval_in_seconds:
+      {MeterReader.InfluxDispatcher,
+       save_interval_in_seconds:
          Application.get_env(:meter_reader, :influx_save_interval_in_seconds),
+       start: !test_mode()},
+      {Backends.PostgresBackend, Application.get_env(:meter_reader, :postgres)},
+      {MeterReader.PostgresDispatcher,
+       save_interval_in_seconds:
+         Application.get_env(:meter_reader, :postgres_save_interval_in_seconds),
        start: !test_mode()},
       {MeterReader.WaterReader, water_reader_config()},
       {MeterReader.P1Reader, p1_reader_config()},

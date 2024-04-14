@@ -46,7 +46,10 @@ defmodule MeterReader.WaterReader do
   @impl true
   def handle_info({:circuits_uart, _uart_port, data}, state) do
     if is_usage_message(data) do
-      MeterReader.DataDispatcher.water_tick_received()
+      MeterReader.WaterTickStore.increment()
+
+      MeterReader.InfluxDispatcher.water_tick_received()
+      MeterReader.PostgresDispatcher.water_tick_received()
     end
 
     {:noreply, state}

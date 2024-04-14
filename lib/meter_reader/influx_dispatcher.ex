@@ -1,4 +1,4 @@
-defmodule MeterReader.DataDispatcher do
+defmodule MeterReader.InfluxDispatcher do
   require Logger
   use GenServer
 
@@ -19,19 +19,14 @@ defmodule MeterReader.DataDispatcher do
   is then sent to the backends.
 
   For Influx, only the P1 data is stored -- Water data is already in Influx.
-  For SQL, the current water "tick" is retrieved and is sent along with the P1 data.
   """
 
   def init(opts) do
     state = %{
-      db_save_interval_in_seconds: opts[:db_save_interval_in_seconds],
-      postgres_save_interval_in_seconds: opts[:postgres_save_interval_in_seconds],
-      influx_save_interval_in_seconds: opts[:influx_save_interval_in_seconds]
+      save_interval_in_seconds: opts[:save_interval_in_seconds]
     }
 
     if opts[:start] do
-      schedule_next_mysql_save(state)
-      schedule_next_postgres_save(state)
       schedule_next_influx_save(state)
     end
 
@@ -44,8 +39,6 @@ defmodule MeterReader.DataDispatcher do
 
   def water_tick_received do
     Backends.InfluxBackend.store_water_tick()
-    Backends.PostgresBackend.store_water()
-    MeterReader.WaterTickStore.increment()
   end
 
   def start_link(opts) do
@@ -58,36 +51,12 @@ defmodule MeterReader.DataDispatcher do
     {:noreply, state}
   end
 
-  def handle_info(:save_to_mysql, state) do
-    schedule_next_mysql_save(state)
-
-    with_last_p1_message(fn message ->
-      water_ticks = MeterReader.WaterTickStore.get()
-
-      Logger.info("DataDispatcher: Sending P1 message to MySQL")
-      Backends.SqlBackend.save(message, water_ticks)
-    end)
-
-    {:noreply, state}
-  end
-
   def handle_info(:save_to_influx, state) do
     schedule_next_influx_save(state)
 
     with_last_p1_message(fn message ->
-      Logger.info("DataDispatcher: Sending P1 message to InfluxDB")
+      Logger.info("InfluxDispatcher: Sending P1 message to InfluxDB")
       Backends.InfluxBackend.store_p1(message)
-    end)
-
-    {:noreply, state}
-  end
-
-  def handle_info(:save_to_postgres, state) do
-    schedule_next_postgres_save(state)
-
-    with_last_p1_message(fn message ->
-      Logger.info("DataDispatcher: Sending P1 message to Postgres")
-      Backends.PostgresBackend.store_p1(message)
     end)
 
     {:noreply, state}
@@ -99,20 +68,12 @@ defmodule MeterReader.DataDispatcher do
     if message != nil do
       callback.(message)
     else
-      Logger.warning("DataDispatcher: No P1 message in store")
+      Logger.warning("InfluxDispatcher: No P1 message in store")
     end
   end
 
-  def schedule_next_mysql_save(state) do
-    schedule_next_save(:save_to_mysql, state[:db_save_interval_in_seconds])
-  end
-
   def schedule_next_influx_save(state) do
-    schedule_next_save(:save_to_influx, state[:influx_save_interval_in_seconds])
-  end
-
-  def schedule_next_postgres_save(state) do
-    schedule_next_save(:save_to_postgres, state[:postgres_save_interval_in_seconds])
+    schedule_next_save(:save_to_influx, state[:save_interval_in_seconds])
   end
 
   def schedule_next_save(message, interval) do
@@ -120,6 +81,8 @@ defmodule MeterReader.DataDispatcher do
 
     Process.send_after(__MODULE__, message, time_until_save * 1000)
 
-    Logger.info("DataDispatcher: Scheduling next #{message} store interval: #{time_until_save}s")
+    Logger.info(
+      "InfluxDispatcher: Scheduling next #{message} store interval: #{time_until_save}s"
+    )
   end
 end
