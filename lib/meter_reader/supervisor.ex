@@ -11,28 +11,15 @@ defmodule MeterReader.Supervisor do
       {MyXQL, myqxl_config()},
       {MeterReader.WaterTickStore, get_start_data: !test_mode()},
       {MeterReader.P1MessageStore, :ok},
-      Backends.SqlBackend,
-      {MeterReader.SqlDispatcher,
-       save_interval_in_seconds: Application.get_env(:meter_reader, :db_save_interval_in_seconds),
-       start: !test_mode()},
-      Backends.InfluxConnection,
-      Backends.InfluxTemporaryDataConnection,
-      Backends.InfluxBackend,
-      {MeterReader.InfluxDispatcher,
-       save_interval_in_seconds:
-         Application.get_env(:meter_reader, :influx_save_interval_in_seconds),
-       start: !test_mode()},
-      {Backends.PostgresBackend, Application.get_env(:meter_reader, :postgres)},
-      {MeterReader.PostgresDispatcher,
-       save_interval_in_seconds:
-         Application.get_env(:meter_reader, :postgres_save_interval_in_seconds),
-       start: !test_mode()},
+      {MeterReader.InfluxSupervisor, test_mode()},
+      {MeterReader.MysqlSupervisor, test_mode()},
+      {MeterReader.PostgresSupervisor, test_mode()},
       {MeterReader.WaterReader, water_reader_config()},
       {MeterReader.P1Reader, p1_reader_config()},
       {MeterReader.SolarEdgeReader, Application.get_env(:meter_reader, :solar_edge)}
     ]
 
-    Supervisor.init(children, strategy: :one_for_one, name: MeterReader.Supervisor)
+    Supervisor.init(children, strategy: :rest_for_one, name: MeterReader.Supervisor)
   end
 
   def myqxl_config do

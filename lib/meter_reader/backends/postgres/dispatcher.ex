@@ -1,4 +1,4 @@
-defmodule MeterReader.SqlDispatcher do
+defmodule Backends.Postgres.Dispatcher do
   require Logger
   use GenServer
 
@@ -17,9 +17,6 @@ defmodule MeterReader.SqlDispatcher do
 
   To do this, it keeps the latest P1 message -- its data is cumulative. The latest message
   is then sent to the backends.
-
-  For Influx, only the P1 data is stored -- Water data is already in Influx.
-  For SQL, the current water "tick" is retrieved and is sent along with the P1 data.
   """
 
   def init(opts) do
@@ -28,24 +25,26 @@ defmodule MeterReader.SqlDispatcher do
     }
 
     if opts[:start] do
-      schedule_next_mysql_save(state)
+      schedule_next_postgres_save(state)
     end
 
     {:ok, state}
+  end
+
+  def water_tick_received do
+    Backends.Postgres.Backend.store_water()
   end
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  def handle_info(:save_to_mysql, state) do
-    schedule_next_mysql_save(state)
+  def handle_info(:save_to_postgres, state) do
+    schedule_next_postgres_save(state)
 
     with_last_p1_message(fn message ->
-      water_ticks = MeterReader.WaterTickStore.get()
-
-      Logger.info("SqlDispatcher: Sending P1 message to MySQL")
-      Backends.SqlBackend.save(message, water_ticks)
+      Logger.info("Postgres.Dispatcher: Sending P1 message to Postgres")
+      Backends.Postgres.Backend.store_p1(message)
     end)
 
     {:noreply, state}
@@ -57,12 +56,12 @@ defmodule MeterReader.SqlDispatcher do
     if message != nil do
       callback.(message)
     else
-      Logger.warning("SqlDispatcher: No P1 message in store")
+      Logger.warning("Postgres.Dispatcher: No P1 message in store")
     end
   end
 
-  def schedule_next_mysql_save(state) do
-    schedule_next_save(:save_to_mysql, state[:save_interval_in_seconds])
+  def schedule_next_postgres_save(state) do
+    schedule_next_save(:save_to_postgres, state[:save_interval_in_seconds])
   end
 
   def schedule_next_save(message, interval) do
@@ -70,6 +69,8 @@ defmodule MeterReader.SqlDispatcher do
 
     Process.send_after(__MODULE__, message, time_until_save * 1000)
 
-    Logger.info("SqlDispatcher: Scheduling next #{message} store interval: #{time_until_save}s")
+    Logger.info(
+      "Postgres.Dispatcher: Scheduling next #{message} store interval: #{time_until_save}s"
+    )
   end
 end

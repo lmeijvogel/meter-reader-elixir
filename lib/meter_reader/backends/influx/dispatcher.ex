@@ -1,4 +1,4 @@
-defmodule MeterReader.InfluxDispatcher do
+defmodule Backends.Influx.Dispatcher do
   require Logger
   use GenServer
 
@@ -38,7 +38,7 @@ defmodule MeterReader.InfluxDispatcher do
   end
 
   def water_tick_received do
-    Backends.InfluxBackend.store_water_tick()
+    Backends.Influx.Backend.store_water_tick()
   end
 
   def start_link(opts) do
@@ -46,7 +46,7 @@ defmodule MeterReader.InfluxDispatcher do
   end
 
   def handle_cast({:p1_message_received, message}, state) do
-    Backends.InfluxBackend.store_temporary_p1(message)
+    Backends.Influx.Backend.store_temporary_p1(message)
 
     {:noreply, state}
   end
@@ -55,8 +55,8 @@ defmodule MeterReader.InfluxDispatcher do
     schedule_next_influx_save(state)
 
     with_last_p1_message(fn message ->
-      Logger.info("InfluxDispatcher: Sending P1 message to InfluxDB")
-      Backends.InfluxBackend.store_p1(message)
+      Logger.info("Influx.Dispatcher: Sending P1 message to InfluxDB")
+      Backends.Influx.Backend.store_p1(message)
     end)
 
     {:noreply, state}
@@ -68,7 +68,7 @@ defmodule MeterReader.InfluxDispatcher do
     if message != nil do
       callback.(message)
     else
-      Logger.warning("InfluxDispatcher: No P1 message in store")
+      Logger.warning("Influx.Dispatcher: No P1 message in store")
     end
   end
 
@@ -82,7 +82,7 @@ defmodule MeterReader.InfluxDispatcher do
     Process.send_after(__MODULE__, message, time_until_save * 1000)
 
     Logger.info(
-      "InfluxDispatcher: Scheduling next #{message} store interval: #{time_until_save}s"
+      "Influx.Dispatcher: Scheduling next #{message} store interval: #{time_until_save}s"
     )
   end
 end

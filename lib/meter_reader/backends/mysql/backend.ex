@@ -1,4 +1,4 @@
-defmodule Backends.SqlBackend do
+defmodule Backends.Mysql.Backend do
   require Logger
   use GenServer
 

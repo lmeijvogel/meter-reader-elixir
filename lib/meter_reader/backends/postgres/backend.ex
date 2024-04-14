@@ -1,4 +1,4 @@
-defmodule Backends.PostgresBackend do
+defmodule Backends.Postgres.Backend do
   require Logger
   use GenServer
 

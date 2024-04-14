@@ -1,4 +1,4 @@
-defmodule Backends.InfluxBackend do
+defmodule Backends.Influx.Backend do
   require Logger
   use GenServer
 
@@ -27,7 +27,7 @@ defmodule Backends.InfluxBackend do
   end
 
   def handle_cast({:store_p1, message}, state) do
-    Backends.InfluxConnection.write([
+    Backends.Influx.Connection.write([
       create_point("levering", message[:levering_dal] + message[:levering_piek]),
       create_point("stroom", message[:stroom_dal] + message[:stroom_piek]),
       create_point("gas", message[:gas])
@@ -38,7 +38,7 @@ defmodule Backends.InfluxBackend do
 
   def handle_cast({:store_temporary_p1, message}, state) do
     :ok =
-      Backends.InfluxTemporaryDataConnection.write(
+      Backends.Influx.TemporaryDataConnection.write(
         [
           %{
             measurement: "current",
@@ -52,7 +52,7 @@ defmodule Backends.InfluxBackend do
   end
 
   def handle_cast({:store_water_tick}, state) do
-    Backends.InfluxConnection.write(create_point("water", 0.5), log: false)
+    Backends.Influx.Connection.write(create_point("water", 0.5), log: false)
 
     {:noreply, state}
   end
@@ -84,7 +84,7 @@ defmodule Backends.InfluxBackend do
     filtered_mapped_data = Enum.filter(mapped_data, fn el -> el != nil end)
 
     :ok =
-      Backends.InfluxConnection.write(filtered_mapped_data,
+      Backends.Influx.Connection.write(filtered_mapped_data,
         precision: :second
       )
 

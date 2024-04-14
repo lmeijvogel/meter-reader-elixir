@@ -89,14 +89,14 @@ defmodule MeterReader.SolarEdgeReader do
     {:ok, response_body} = perform_api_request(state)
     {:ok, message} = MeterReader.SolarEdgeMessageDecoder.decode_message(response_body)
 
-    Backends.InfluxBackend.store_solaredge(message[:production])
+    Backends.Influx.Backend.store_solaredge(message[:production])
 
     mapped_production =
       Enum.map(message[:production], fn row ->
         %{timestamp: DateTime.from_naive!(row.date, "Europe/Amsterdam"), value: row.value}
       end)
 
-    Backends.PostgresBackend.store_solaredge(mapped_production)
+    Backends.Postgres.Backend.store_solaredge(mapped_production)
 
     {:noreply, state}
   end
