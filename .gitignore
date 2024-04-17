@@ -13,8 +13,8 @@
 # Ignore .fetch files in case you like to edit your project deps locally.
 /.fetch
 
-/config/host.exs
-/config/target.exs
+/config/host_secrets.exs
+/config/target_secrets.exs
 
 # If the VM crashes, it generates a dump, let's ignore it too.
 erl_crash.dump
