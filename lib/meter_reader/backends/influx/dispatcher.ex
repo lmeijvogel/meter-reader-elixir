@@ -38,6 +38,8 @@ defmodule Backends.Influx.Dispatcher do
   end
 
   def water_tick_received do
+    Logger.debug("Influx.Dispatcher: Storing water tick in InfluxDB")
+
     Backends.Influx.Backend.store_water_tick()
   end
 
