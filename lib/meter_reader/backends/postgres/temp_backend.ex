@@ -1,18 +1,22 @@
-defmodule Backends.Postgres.Backend do
+defmodule Backends.Postgres.TempBackend do
   require Logger
   use GenServer
 
   @impl true
-  def init(_) do
-    {:ok, %{enabled: false}}
+  def init(config) do
+    # Ideally, this should be started from the Supervisor, but Postgrex starts
+    # its own ConnectionPool with a (maybe?) fixed id, causing `mix` to crash.
+    #
+    # This doesn't happen if I start it here manually, so let's keep it here
+    # for now, since this module will be removed somewhere in the future
+    # anyway.
+    {:ok, pid} = Postgrex.start_link(config)
+
+    {:ok, %{pid: pid}}
   end
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
-  end
-
-  def enable do
-    GenServer.cast(__MODULE__, :enable)
   end
 
   def store_p1(p1_message) do
@@ -29,7 +33,7 @@ defmodule Backends.Postgres.Backend do
 
   @impl true
   def handle_call({:store_p1, p1_message}, _from, state) do
-    Logger.debug("Storing p1 message in postgres: #{inspect(p1_message)}")
+    Logger.debug("Postgres.TempBackend: Storing p1 message: #{inspect(p1_message)}")
 
     {:ok, timestamp} = get_timestamp(p1_message)
 
@@ -41,7 +45,7 @@ defmodule Backends.Postgres.Backend do
 
   @impl true
   def handle_call({:store_water}, _from, state) do
-    Logger.debug("PostgresBackend: Storing water tick in postgres")
+    Logger.debug("Postgres.TempBackend: Storing water tick in postgres")
 
     query = """
       INSERT INTO water(created, usage_dl) VALUES($1::timestamp, $2::integer);
@@ -52,16 +56,11 @@ defmodule Backends.Postgres.Backend do
       5
     ]
 
-    if state.enabled do
-      Postgrex.query(:meter_reader_postgrex, query, params)
-    else
-      Logger.debug("Postgres.Backend.store_water: enabled == false, not writing")
-    end
+    Postgrex.query(state[:pid], query, params)
 
     {:reply, :ok, state}
   end
 
-  @impl true
   def handle_call({:store_solaredge, production_data}, _from, state) do
     existing_timestamps = existing_timestamps(Date.utc_today(), state)
 
@@ -75,7 +74,7 @@ defmodule Backends.Postgres.Backend do
     item_count = length(data_to_insert)
 
     if item_count > 0 do
-      Logger.debug("PostgresBackend: Storing #{item_count} SolarEdge entries")
+      Logger.debug("Postgres.TempBackend: Storing #{item_count} SolarEdge entries")
 
       placeholders =
         Enum.map(0..(item_count - 1), fn i ->
@@ -93,23 +92,12 @@ defmodule Backends.Postgres.Backend do
         INSERT INTO generation(created, generation_wh) VALUES #{formatted_placeholders}
       """
 
-      if state.enabled do
-        {:ok, _result} = Postgrex.query(:meter_reader_postgrex, query, params)
-      else
-        Logger.debug("Postgres.Backend.store_solaredge: enabled == false, not writing")
-      end
+      {:ok, _result} = Postgrex.query(state[:pid], query, params)
     else
-      Logger.debug("PostgresBackend: No new SolarEdge entries")
+      Logger.debug("Postgres.TempBackend: No new SolarEdge entries")
     end
 
     {:reply, state, state}
-  end
-
-  @impl true
-  def handle_cast(:enable, state) do
-    new_state = Map.put(state, :enabled, true)
-
-    {:noreply, new_state}
   end
 
   defp store_gas(p1_message, timestamp, state) do
@@ -122,12 +110,7 @@ defmodule Backends.Postgres.Backend do
       round(p1_message[:gas] * 1000)
     ]
 
-    if state.enabled do
-      Postgrex.query(:meter_reader_postgrex, query, params)
-    else
-      Logger.debug("Postgres.Backend.store_gas: enabled == false, not writing")
-      {:ok, state}
-    end
+    Postgrex.query(state[:pid], query, params)
   end
 
   defp store_power(p1_message, timestamp, state) do
@@ -140,18 +123,13 @@ defmodule Backends.Postgres.Backend do
       round((p1_message[:levering_dal] + p1_message[:levering_piek]) * 1000)
     ]
 
-    if state.enabled do
-      Postgrex.query(:meter_reader_postgrex, query, params)
-    else
-      Logger.debug("Postgres.Backend.store_power: enabled == false, not writing")
-      {:ok, state}
-    end
+    Postgrex.query(state[:pid], query, params)
   end
 
-  defp existing_timestamps(date, _state) do
+  defp existing_timestamps(date, state) do
     existing_timestamps_query = "SELECT created FROM generation WHERE created >= $1::date"
 
-    {:ok, result} = Postgrex.query(:meter_reader_postgrex, existing_timestamps_query, [date])
+    {:ok, result} = Postgrex.query(state[:pid], existing_timestamps_query, [date])
 
     Enum.map(result.rows, fn row -> List.first(row) end)
   end

@@ -97,6 +97,7 @@ defmodule MeterReader.SolarEdgeReader do
       end)
 
     Backends.Postgres.Backend.store_solaredge(mapped_production)
+    Backends.Postgres.TempBackend.store_solaredge(mapped_production)
 
     {:noreply, state}
   end

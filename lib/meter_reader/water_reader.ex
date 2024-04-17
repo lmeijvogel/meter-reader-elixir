@@ -50,6 +50,7 @@ defmodule MeterReader.WaterReader do
 
       Backends.Influx.Dispatcher.water_tick_received()
       Backends.Postgres.Dispatcher.water_tick_received()
+      Backends.Postgres.TempDispatcher.water_tick_received()
     end
 
     {:noreply, state}

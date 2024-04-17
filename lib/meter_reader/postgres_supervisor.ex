@@ -13,6 +13,11 @@ defmodule MeterReader.PostgresSupervisor do
       {Backends.Postgres.Dispatcher,
        save_interval_in_seconds:
          Application.get_env(:meter_reader, :postgres_save_interval_in_seconds),
+       start: !test_mode},
+      {Backends.Postgres.TempBackend, Application.get_env(:meter_reader, :postgres_temp)},
+      {Backends.Postgres.TempDispatcher,
+       save_interval_in_seconds:
+         Application.get_env(:meter_reader, :postgres_save_interval_in_seconds),
        start: !test_mode}
     ]
 
