@@ -3,10 +3,8 @@ defmodule Backends.Postgres.Backend do
   use GenServer
 
   @impl true
-  def init(config) do
-    {:ok, pid} = Postgrex.start_link(config)
-
-    {:ok, %{pid: pid}}
+  def init(_) do
+    {:ok, %{}}
   end
 
   def start_link(opts) do
@@ -50,11 +48,12 @@ defmodule Backends.Postgres.Backend do
       5
     ]
 
-    Postgrex.query(state[:pid], query, params)
+    Postgrex.query(:meter_reader_postgrex, query, params)
 
     {:reply, :ok, state}
   end
 
+  @impl true
   def handle_call({:store_solaredge, production_data}, _from, state) do
     existing_timestamps = existing_timestamps(Date.utc_today(), state)
 
@@ -86,7 +85,7 @@ defmodule Backends.Postgres.Backend do
         INSERT INTO generation(created, generation_wh) VALUES #{formatted_placeholders}
       """
 
-      {:ok, _result} = Postgrex.query(state[:pid], query, params)
+      {:ok, _result} = Postgrex.query(:meter_reader_postgrex, query, params)
     else
       Logger.debug("PostgresBackend: No new SolarEdge entries")
     end
@@ -104,7 +103,7 @@ defmodule Backends.Postgres.Backend do
       round(p1_message[:gas] * 1000)
     ]
 
-    Postgrex.query(state[:pid], query, params)
+    Postgrex.query(:meter_reader_postgrex, query, params)
   end
 
   defp store_power(p1_message, timestamp, state) do
@@ -117,13 +116,13 @@ defmodule Backends.Postgres.Backend do
       round((p1_message[:levering_dal] + p1_message[:levering_piek]) * 1000)
     ]
 
-    Postgrex.query(state[:pid], query, params)
+    Postgrex.query(:meter_reader_postgrex, query, params)
   end
 
-  defp existing_timestamps(date, state) do
+  defp existing_timestamps(date, _state) do
     existing_timestamps_query = "SELECT created FROM generation WHERE created >= $1::date"
 
-    {:ok, result} = Postgrex.query(state[:pid], existing_timestamps_query, [date])
+    {:ok, result} = Postgrex.query(:meter_reader_postgrex, existing_timestamps_query, [date])
 
     Enum.map(result.rows, fn row -> List.first(row) end)
   end
