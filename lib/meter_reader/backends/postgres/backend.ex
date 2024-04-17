@@ -4,15 +4,11 @@ defmodule Backends.Postgres.Backend do
 
   @impl true
   def init(_) do
-    {:ok, %{enabled: false}}
+    {:ok, %{}}
   end
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
-  end
-
-  def enable do
-    GenServer.cast(__MODULE__, :enable)
   end
 
   def store_p1(p1_message) do
@@ -29,12 +25,10 @@ defmodule Backends.Postgres.Backend do
 
   @impl true
   def handle_call({:store_p1, p1_message}, _from, state) do
-    Logger.debug("Storing p1 message in postgres: #{inspect(p1_message)}")
-
     {:ok, timestamp} = get_timestamp(p1_message)
 
-    {:ok, _} = store_gas(p1_message, timestamp, state)
-    {:ok, _} = store_power(p1_message, timestamp, state)
+    :ok = store_gas(p1_message, timestamp)
+    :ok = store_power(p1_message, timestamp)
 
     {:reply, :ok, state}
   end
@@ -52,7 +46,7 @@ defmodule Backends.Postgres.Backend do
       5
     ]
 
-    if state.enabled do
+    if enabled?() do
       Postgrex.query(:meter_reader_postgrex, query, params)
     else
       Logger.debug("Postgres.Backend.store_water: enabled == false, not writing")
@@ -63,7 +57,7 @@ defmodule Backends.Postgres.Backend do
 
   @impl true
   def handle_call({:store_solaredge, production_data}, _from, state) do
-    existing_timestamps = existing_timestamps(Date.utc_today(), state)
+    existing_timestamps = existing_timestamps(Date.utc_today())
 
     data_to_insert =
       Enum.reject(production_data, fn row ->
@@ -93,7 +87,7 @@ defmodule Backends.Postgres.Backend do
         INSERT INTO generation(created, generation_wh) VALUES #{formatted_placeholders}
       """
 
-      if state.enabled do
+      if enabled?() do
         {:ok, _result} = Postgrex.query(:meter_reader_postgrex, query, params)
       else
         Logger.debug("Postgres.Backend.store_solaredge: enabled == false, not writing")
@@ -105,14 +99,7 @@ defmodule Backends.Postgres.Backend do
     {:reply, state, state}
   end
 
-  @impl true
-  def handle_cast(:enable, state) do
-    new_state = Map.put(state, :enabled, true)
-
-    {:noreply, new_state}
-  end
-
-  defp store_gas(p1_message, timestamp, state) do
+  defp store_gas(p1_message, timestamp) do
     query = """
       INSERT INTO gas(created, cumulative_total_dm3) VALUES($1::timestamp, $2::integer);
     """
@@ -122,15 +109,16 @@ defmodule Backends.Postgres.Backend do
       round(p1_message[:gas] * 1000)
     ]
 
-    if state.enabled do
-      Postgrex.query(:meter_reader_postgrex, query, params)
+    if enabled?() do
+      {:ok, _} = Postgrex.query(:meter_reader_postgrex, query, params)
     else
       Logger.debug("Postgres.Backend.store_gas: enabled == false, not writing")
-      {:ok, state}
     end
+
+    :ok
   end
 
-  defp store_power(p1_message, timestamp, state) do
+  defp store_power(p1_message, timestamp) do
     query =
       "INSERT INTO power(created, cumulative_from_network_wh, cumulative_to_network_wh) VALUES($1::timestamp, $2::integer, $3::integer)"
 
@@ -140,20 +128,25 @@ defmodule Backends.Postgres.Backend do
       round((p1_message[:levering_dal] + p1_message[:levering_piek]) * 1000)
     ]
 
-    if state.enabled do
-      Postgrex.query(:meter_reader_postgrex, query, params)
+    if enabled?() do
+      {:ok, _} = Postgrex.query(:meter_reader_postgrex, query, params)
     else
       Logger.debug("Postgres.Backend.store_power: enabled == false, not writing")
-      {:ok, state}
     end
+
+    :ok
   end
 
-  defp existing_timestamps(date, _state) do
+  defp existing_timestamps(date) do
     existing_timestamps_query = "SELECT created FROM generation WHERE created >= $1::date"
 
     {:ok, result} = Postgrex.query(:meter_reader_postgrex, existing_timestamps_query, [date])
 
     Enum.map(result.rows, fn row -> List.first(row) end)
+  end
+
+  defp enabled? do
+    Backends.Postgres.ProdEnabledStore.enabled?()
   end
 
   def get_timestamp(p1_message) do
