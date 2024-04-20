@@ -22,6 +22,7 @@ defmodule Backends.Mysql.Dispatcher do
   For SQL, the current water "tick" is retrieved and is sent along with the P1 data.
   """
 
+  @impl true
   def init(opts) do
     state = %{
       save_interval_in_seconds: opts[:save_interval_in_seconds]
@@ -38,6 +39,7 @@ defmodule Backends.Mysql.Dispatcher do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
+  @impl true
   def handle_info(:save_to_mysql, state) do
     schedule_next_mysql_save(state)
 

@@ -3,6 +3,7 @@ defmodule MeterReader.SolarEdgeReader do
 
   use GenServer
 
+  @impl true
   def init(opts) do
     state = %{
       host: opts[:host],
@@ -83,6 +84,7 @@ defmodule MeterReader.SolarEdgeReader do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
+  @impl true
   def handle_cast(:retrieve_data, state) do
     schedule_next_retrieve(state)
 
@@ -102,6 +104,7 @@ defmodule MeterReader.SolarEdgeReader do
     {:noreply, state}
   end
 
+  @impl true
   def handle_info(:retrieve_data, state) do
     retrieve_data()
 
