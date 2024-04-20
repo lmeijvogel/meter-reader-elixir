@@ -29,11 +29,11 @@ defmodule Backends.Mysql.Backend do
     {:ok, now} = DateTime.now("Etc/UTC")
 
     params = [
-      p1_message[:timestamp],
+      p1_message.timestamp,
       now |> DateTime.to_naive() |> NaiveDateTime.to_iso8601(),
-      p1_message[:stroom_piek] + p1_message[:stroom_dal],
-      p1_message[:levering_piek] + p1_message[:levering_dal],
-      p1_message[:gas],
+      p1_message.stroom_piek + p1_message.stroom_dal,
+      p1_message.levering_piek + p1_message.levering_dal,
+      p1_message.gas,
       water_ticks
     ]
 

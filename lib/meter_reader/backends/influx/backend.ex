@@ -28,9 +28,9 @@ defmodule Backends.Influx.Backend do
 
   def handle_cast({:store_p1, message}, state) do
     Backends.Influx.Connection.write([
-      create_point("levering", message[:levering_dal] + message[:levering_piek]),
-      create_point("stroom", message[:stroom_dal] + message[:stroom_piek]),
-      create_point("gas", message[:gas])
+      create_point("levering", message.levering_dal + message.levering_piek),
+      create_point("stroom", message.stroom_dal + message.stroom_piek),
+      create_point("gas", message.gas)
     ])
 
     {:noreply, state}
@@ -42,7 +42,7 @@ defmodule Backends.Influx.Backend do
         [
           %{
             measurement: "current",
-            fields: %{current: message[:stroom_current], generation: message[:levering_current]}
+            fields: %{current: message.stroom_current, generation: message.levering_current}
           }
         ],
         log: false

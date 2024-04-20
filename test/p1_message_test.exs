@@ -1,15 +1,15 @@
 defmodule MessageDecoderTest do
   use ExUnit.Case
-  doctest MeterReader.MessageDecoder
+  doctest MeterReader.P1Message
 
-  @subject MeterReader.MessageDecoder
+  @subject MeterReader.P1Message
 
   test "decode start of message" do
     message_start_marker = "/ABCDEFGHI-METER"
 
-    result = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{})
+    {:added, result} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{})
 
-    assert result == {:added, %{}}
+    assert result.contains_start?
   end
 
   test "decode empty line" do
@@ -19,7 +19,7 @@ defmodule MessageDecoderTest do
     {:added, state} = @subject.decode("", message_start_marker, state)
     {:done, state} = @subject.decode("!E62D", message_start_marker, state)
 
-    assert state == %{}
+    assert state.complete?
   end
 
   test "decode timestamp" do
@@ -118,6 +118,31 @@ defmodule MessageDecoderTest do
 
     assert state.gas == 3991.882
     assert state.stroom_piek == 4184.285
+  end
+
+  test "decode when starting halfway through a message" do
+    message_start_marker = "/ABCDEFGHI-METER"
+
+    {:added, state} =
+      @subject.decode(
+        "0-1:24.2.1(240224163506W)(03991.882*m3)",
+        message_start_marker,
+        %MeterReader.P1Message{}
+      )
+
+    {result_type, message} = @subject.decode("!E62D", message_start_marker, state)
+
+    assert result_type == :done
+    assert !message.complete?
+
+    {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{})
+
+    {:added, state} =
+      @subject.decode("0-1:24.2.1(240224163506W)(03991.882*m3)", message_start_marker, state)
+
+    {:done, state} = @subject.decode("!E62D", message_start_marker, state)
+
+    assert state.gas == 3991.882
   end
 end
 

@@ -106,7 +106,7 @@ defmodule Backends.Postgres.Backend do
 
     params = [
       timestamp,
-      round(p1_message[:gas] * 1000)
+      round(p1_message.gas * 1000)
     ]
 
     if enabled?() do
@@ -124,8 +124,8 @@ defmodule Backends.Postgres.Backend do
 
     params = [
       timestamp,
-      round((p1_message[:stroom_dal] + p1_message[:stroom_piek]) * 1000),
-      round((p1_message[:levering_dal] + p1_message[:levering_piek]) * 1000)
+      round((p1_message.stroom_dal + p1_message.stroom_piek) * 1000),
+      round((p1_message.levering_dal + p1_message.levering_piek) * 1000)
     ]
 
     if enabled?() do
@@ -150,7 +150,7 @@ defmodule Backends.Postgres.Backend do
   end
 
   def get_timestamp(p1_message) do
-    {:ok, naive_datetime} = NaiveDateTime.from_iso8601(p1_message[:timestamp])
+    {:ok, naive_datetime} = NaiveDateTime.from_iso8601(p1_message.timestamp)
     DateTime.from_naive(naive_datetime, "Europe/Amsterdam")
   end
 

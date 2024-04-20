@@ -45,21 +45,23 @@ defmodule MeterReader.P1Reader do
 
   def handle_info({:circuits_uart, _uart_port, data}, state) do
     {response, decoded_message} =
-      MeterReader.MessageDecoder.decode(
+      MeterReader.P1Message.decode(
         data,
         state.p1_config[:message_start_marker],
         state.decoded_message
       )
 
-    if response == :done do
+    if response == :done and decoded_message.complete? do
       previous_message = MeterReader.P1MessageStore.get()
 
-      if MeterReader.MessageDecoder.valid?(decoded_message, previous_message) do
+      if MeterReader.P1Message.valid?(decoded_message, previous_message) do
         MeterReader.P1MessageStore.set(decoded_message)
 
         Backends.Influx.Dispatcher.p1_message_received(decoded_message)
       else
         Logger.warning("P1Reader: Dropping invalid message")
+        Logger.debug("Current:  #{decoded_message |> inspect}")
+        Logger.debug("Previous: #{previous_message |> inspect}")
       end
     end
 
