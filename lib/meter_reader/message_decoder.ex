@@ -32,7 +32,28 @@ defmodule MeterReader.MessageDecoder do
     end
   end
 
-  def parse_parts("0-0:1.0.0", inputs, state) do
+  @doc """
+  Sometimes the measurements are invalid, e.g. a measurement is missing
+  or is lower than the last measurement. In that case the message should be dropped.
+  """
+  def valid?(message, last_message) do
+    cond do
+      last_message == nil -> true
+      # message[:stroom_piek] == nil -> false
+      # message[:stroom_dal] == nil -> false
+      # message[:levering_piek] == nil -> false
+      # message[:levering_dal] == nil -> false
+      # message[:gas] == nil -> false
+      message[:stroom_piek] < last_message[:stroom_piek] -> false
+      message[:stroom_dal] < last_message[:stroom_dal] -> false
+      message[:levering_piek] < last_message[:levering_piek] -> false
+      message[:levering_dal] < last_message[:levering_dal] -> false
+      message[:gas] < last_message[:gas] -> false
+      true -> true
+    end
+  end
+
+  defp parse_parts("0-0:1.0.0", inputs, state) do
     raw_value = Enum.at(inputs, 0)
 
     year = String.slice(raw_value, 0, 2)
@@ -48,42 +69,42 @@ defmodule MeterReader.MessageDecoder do
     Map.put(state, :timestamp, formatted_timestamp)
   end
 
-  def parse_parts("1-0:2.7.0", inputs, state) do
+  defp parse_parts("1-0:2.7.0", inputs, state) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
     Map.put(state, :levering_current, value * 1000)
   end
 
-  def parse_parts("1-0:2.8.1", inputs, state) do
+  defp parse_parts("1-0:2.8.1", inputs, state) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
     Map.put(state, :levering_dal, value)
   end
 
-  def parse_parts("1-0:2.8.2", inputs, state) do
+  defp parse_parts("1-0:2.8.2", inputs, state) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
     Map.put(state, :levering_piek, value)
   end
 
-  def parse_parts("1-0:1.7.0", inputs, state) do
+  defp parse_parts("1-0:1.7.0", inputs, state) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
     Map.put(state, :stroom_current, value * 1000)
   end
 
-  def parse_parts("1-0:1.8.1", inputs, state) do
+  defp parse_parts("1-0:1.8.1", inputs, state) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
     Map.put(state, :stroom_dal, value)
   end
 
-  def parse_parts("1-0:1.8.2", inputs, state) do
+  defp parse_parts("1-0:1.8.2", inputs, state) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
     Map.put(state, :stroom_piek, value)
   end
 
-  def parse_parts("0-1:24.2.1", inputs, state) do
+  defp parse_parts("0-1:24.2.1", inputs, state) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 1))
     Map.put(state, :gas, value)
   end
 
-  def parse_parts(_, _, state) do
+  defp parse_parts(_, _, state) do
     state
   end
 end

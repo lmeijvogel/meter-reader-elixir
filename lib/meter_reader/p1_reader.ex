@@ -54,7 +54,7 @@ defmodule MeterReader.P1Reader do
     if response == :done do
       previous_message = MeterReader.P1MessageStore.get()
 
-      if valid?(decoded_message, previous_message) do
+      if MeterReader.MessageDecoder.valid?(decoded_message, previous_message) do
         MeterReader.P1MessageStore.set(decoded_message)
 
         Backends.Influx.Dispatcher.p1_message_received(decoded_message)
@@ -64,19 +64,5 @@ defmodule MeterReader.P1Reader do
     end
 
     {:noreply, Map.put(state, :decoded_message, decoded_message)}
-  end
-
-  # Sometimes the measurements are invalid, e.g. a measurement is missing
-  # or is lower than the last measurement. In that case drop the message.
-  def valid?(message, last_message) do
-    cond do
-      last_message == nil -> true
-      message[:stroom_piek] < last_message[:stroom_piek] -> false
-      message[:stroom_dal] < last_message[:stroom_dal] -> false
-      message[:levering_piek] < last_message[:levering_piek] -> false
-      message[:levering_dal] < last_message[:levering_dal] -> false
-      message[:gas] < last_message[:gas] -> false
-      true -> true
-    end
   end
 end
