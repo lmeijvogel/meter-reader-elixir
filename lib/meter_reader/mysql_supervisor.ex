@@ -14,6 +14,6 @@ defmodule MeterReader.MysqlSupervisor do
        start: !test_mode}
     ]
 
-    Supervisor.init(children, strategy: :rest_for_one, name: __MODULE__)
+    Supervisor.init(children, strategy: :one_for_one, name: __MODULE__)
   end
 end

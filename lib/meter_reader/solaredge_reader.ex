@@ -42,7 +42,7 @@ defmodule MeterReader.SolarEdgeReader do
     )
 
     Process.send_after(
-      __MODULE__,
+      self(),
       :retrieve_data,
       NaiveDateTime.diff(next, now) * 1000
     )

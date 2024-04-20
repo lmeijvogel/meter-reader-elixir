@@ -68,7 +68,7 @@ defmodule Backends.Mysql.Dispatcher do
   def schedule_next_save(message, interval) do
     time_until_save = MeterReader.IntervalCalculator.seconds_to_next(Time.utc_now(), interval)
 
-    Process.send_after(__MODULE__, message, time_until_save * 1000)
+    Process.send_after(self(), message, time_until_save * 1000)
 
     Logger.info(
       "Mysql.Dispatcher: Scheduling next #{message} store interval: #{time_until_save}s"
