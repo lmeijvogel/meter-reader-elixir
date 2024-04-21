@@ -49,7 +49,11 @@ defmodule MeterReader.WaterReader do
       MeterReader.WaterTickStore.increment()
 
       Backends.Influx.Dispatcher.water_tick_received()
-      Backends.Postgres.Dispatcher.water_tick_received()
+
+      if Backends.Postgres.ProdEnabledStore.enabled?() do
+        Backends.Postgres.Dispatcher.water_tick_received()
+      end
+
       Backends.Postgres.TempDispatcher.water_tick_received()
     end
 

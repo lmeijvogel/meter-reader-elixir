@@ -1,4 +1,4 @@
-defmodule MeterReader.PostgresSupervisor do
+defmodule MeterReader.PostgresTempSupervisor do
   use Supervisor
 
   def start_link(opts) do
@@ -8,15 +8,12 @@ defmodule MeterReader.PostgresSupervisor do
   @impl true
   def init(test_mode) do
     children = [
-      {Postgrex, Application.get_env(:meter_reader, :postgres) ++ [name: :meter_reader_postgrex]},
-      {Backends.Postgres.Backend, Application.get_env(:meter_reader, :postgres)},
-      {Backends.Postgres.Dispatcher,
+      {Backends.Postgres.TempBackend, Application.get_env(:meter_reader, :postgres_temp)},
+      {Backends.Postgres.TempDispatcher,
        save_interval_in_seconds:
          Application.get_env(:meter_reader, :postgres_save_interval_in_seconds),
        start: !test_mode}
     ]
-
-    Backends.Postgres.ProdEnabledStore.enable()
 
     Supervisor.init(children, strategy: :one_for_one, name: __MODULE__)
   end

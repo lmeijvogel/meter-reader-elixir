@@ -9,17 +9,20 @@ defmodule MeterReader.Supervisor do
   def init(:ok) do
     children = [
       {MyXQL, myqxl_config()},
+      {Backends.Postgres.ProdEnabledStore, false},
       {MeterReader.WaterTickStore, get_start_data: !test_mode()},
       {MeterReader.P1MessageStore, :ok},
       {MeterReader.InfluxSupervisor, test_mode()},
       {MeterReader.MysqlSupervisor, test_mode()},
-      {MeterReader.PostgresSupervisor, test_mode()},
+      {MeterReader.PostgresTempSupervisor, test_mode()},
       {MeterReader.WaterReader, water_reader_config()},
       {MeterReader.P1Reader, p1_reader_config()},
       {MeterReader.SolarEdgeReader, Application.get_env(:meter_reader, :solar_edge)}
     ]
 
-    Supervisor.init(children, strategy: :rest_for_one, name: MeterReader.Supervisor)
+    if !test_mode() do
+      Supervisor.init(children, strategy: :rest_for_one, name: MeterReader.Supervisor)
+    end
   end
 
   def myqxl_config do

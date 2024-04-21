@@ -98,7 +98,10 @@ defmodule MeterReader.SolarEdgeReader do
         %{timestamp: DateTime.from_naive!(row.date, "Europe/Amsterdam"), value: row.value}
       end)
 
-    Backends.Postgres.Backend.store_solaredge(mapped_production)
+    if Backends.Postgres.ProdEnabledStore.enabled?() do
+      Backends.Postgres.Backend.store_solaredge(mapped_production)
+    end
+
     Backends.Postgres.TempBackend.store_solaredge(mapped_production)
 
     {:noreply, state}
