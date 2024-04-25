@@ -12,4 +12,14 @@ defmodule MeterReader.P1MessageStore do
   def set(message) do
     Agent.update(__MODULE__, fn _ -> message end)
   end
+
+  def with_latest_message(callback, else_callback) do
+    message = get()
+
+    if message != nil do
+      callback.(message)
+    else
+      else_callback.()
+    end
+  end
 end

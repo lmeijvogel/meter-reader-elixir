@@ -44,22 +44,12 @@ defmodule Backends.Postgres.Dispatcher do
   def handle_info(:save_to_postgres, state) do
     schedule_next_postgres_save(state)
 
-    with_last_p1_message(fn message ->
-      Logger.info("Postgres.Dispatcher: Sending P1 message to Postgres")
-      Backends.Postgres.Backend.store_p1(message)
-    end)
+    MeterReader.P1MessageStore.with_latest_message(
+      &Backends.Postgres.Backend.store_p1/1,
+      fn -> Logger.warning("Postgres.Dispatcher: No P1 message in store") end
+    )
 
     {:noreply, state}
-  end
-
-  def with_last_p1_message(callback) do
-    message = MeterReader.P1MessageStore.get()
-
-    if message != nil do
-      callback.(message)
-    else
-      Logger.warning("Postgres.Dispatcher: No P1 message in store")
-    end
   end
 
   def schedule_next_postgres_save(state) do

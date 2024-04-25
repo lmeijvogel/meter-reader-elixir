@@ -27,6 +27,8 @@ defmodule Backends.Influx.Backend do
   end
 
   def handle_cast({:store_p1, message}, state) do
+    Logger.info("Influx.Backend: Storing P1 message")
+
     Backends.Influx.Connection.write([
       create_point("levering", message.levering_dal + message.levering_piek),
       create_point("stroom", message.stroom_dal + message.stroom_piek),

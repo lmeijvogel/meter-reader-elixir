@@ -43,24 +43,12 @@ defmodule Backends.Mysql.Dispatcher do
   def handle_info(:save_to_mysql, state) do
     schedule_next_mysql_save(state)
 
-    with_last_p1_message(fn message ->
-      water_ticks = MeterReader.WaterTickStore.get()
-
-      Logger.info("Mysql.Dispatcher: Sending P1 message to MySQL")
-      Backends.Mysql.Backend.save(message, water_ticks)
-    end)
+    MeterReader.P1MessageStore.with_latest_message(
+      &Backends.Mysql.Backend.save(&1, MeterReader.WaterTickStore.get()),
+      fn -> Logger.warning("Mysql.Dispatcher: No P1 message in store") end
+    )
 
     {:noreply, state}
-  end
-
-  def with_last_p1_message(callback) do
-    message = MeterReader.P1MessageStore.get()
-
-    if message != nil do
-      callback.(message)
-    else
-      Logger.warning("Mysql.Dispatcher: No P1 message in store")
-    end
   end
 
   def schedule_next_mysql_save(state) do

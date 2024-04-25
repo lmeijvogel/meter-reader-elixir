@@ -56,22 +56,12 @@ defmodule Backends.Influx.Dispatcher do
   def handle_info(:save_to_influx, state) do
     schedule_next_influx_save(state)
 
-    with_last_p1_message(fn message ->
-      Logger.info("Influx.Dispatcher: Sending P1 message to InfluxDB")
-      Backends.Influx.Backend.store_p1(message)
-    end)
+    MeterReader.P1MessageStore.with_latest_message(
+      &Backends.Influx.Backend.store_p1/1,
+      fn -> Logger.warning("Influx.Dispatcher: No P1 message in store") end
+    )
 
     {:noreply, state}
-  end
-
-  def with_last_p1_message(callback) do
-    message = MeterReader.P1MessageStore.get()
-
-    if message != nil do
-      callback.(message)
-    else
-      Logger.warning("Influx.Dispatcher: No P1 message in store")
-    end
   end
 
   def schedule_next_influx_save(state) do
