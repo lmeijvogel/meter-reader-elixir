@@ -9,9 +9,11 @@ defmodule MeterReader.Supervisor do
   def init(:ok) do
     children = [
       {MyXQL, myqxl_config()},
+      {Redix, redix_config()},
       {Backends.Postgres.ProdEnabledStore, true},
       {MeterReader.WaterTickStore, get_start_data: !test_mode()},
       {MeterReader.P1MessageStore, :ok},
+      {Backends.RedisBackend, Application.get_env(:meter_reader, :redis)},
       {MeterReader.InfluxSupervisor, test_mode()},
       {MeterReader.MysqlSupervisor, test_mode()},
       {MeterReader.PostgresSupervisor, test_mode()},
@@ -31,6 +33,13 @@ defmodule MeterReader.Supervisor do
       [
         name: :myxql
       ]
+  end
+
+  def redix_config do
+    [
+      host: Application.get_env(:meter_reader, :redis)[:host],
+      name: :redix
+    ]
   end
 
   def water_reader_config do

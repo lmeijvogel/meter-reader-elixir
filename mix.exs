@@ -79,7 +79,8 @@ defmodule MeterReader.MixProject do
       {:timex, "~> 3.7.11"},
       {:tzdata, "~> 1.1"},
       {:jason, "~> 1.3"},
-      {:req, "~> 0.3.0"}
+      {:req, "~> 0.3.0"},
+      {:redix, "~> 1.4.2"}
     ]
   end
 

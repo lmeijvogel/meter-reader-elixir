@@ -107,11 +107,14 @@ config :mdns_lite,
 
 config :meter_reader,
   # Backends
-  redis_measurements_list_name: "latest_measurements",
-  redis_host: "localhost",
   db_save_interval_in_seconds: 600,
   postgres_save_interval_in_seconds: 60,
   influx_save_interval_in_seconds: 60
+
+config :meter_reader, :redis,
+  host: secrets.redis_host,
+  redis_current_latest_measurements_list_name: "latest_current_measurements",
+  redis_water_last_ticks_list_name: "water_meter_last_ticks"
 
 config :meter_reader, :sql,
   hostname: secrets.mysql_hostname,
