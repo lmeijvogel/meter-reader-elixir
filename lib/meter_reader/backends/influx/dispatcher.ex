@@ -21,6 +21,7 @@ defmodule Backends.Influx.Dispatcher do
   For Influx, only the P1 data is stored -- Water data is already in Influx.
   """
 
+  @impl true
   def init(opts) do
     state = %{
       save_interval_in_seconds: opts[:save_interval_in_seconds]
@@ -47,12 +48,14 @@ defmodule Backends.Influx.Dispatcher do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
+  @impl true
   def handle_cast({:p1_message_received, message}, state) do
     Backends.Influx.Backend.store_temporary_p1(message)
 
     {:noreply, state}
   end
 
+  @impl true
   def handle_info(:save_to_influx, state) do
     schedule_next_influx_save(state)
 

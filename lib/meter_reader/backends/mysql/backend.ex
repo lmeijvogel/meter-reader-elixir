@@ -2,18 +2,20 @@ defmodule Backends.Mysql.Backend do
   require Logger
   use GenServer
 
-  def init(:ok) do
+  @impl true
+  def init([]) do
     {:ok, %{}}
   end
 
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   def save(p1_message, water_ticks) do
     GenServer.call(__MODULE__, {:save, p1_message, water_ticks})
   end
 
+  @impl true
   def handle_call({:save, p1_message, water_ticks}, _from, state) do
     Logger.debug(
       "Saving P1 message to MariaDB: #{inspect(Map.put(p1_message, :water, water_ticks))}"

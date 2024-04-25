@@ -2,7 +2,8 @@ defmodule Backends.Influx.Backend do
   require Logger
   use GenServer
 
-  def init(_opts) do
+  @impl true
+  def init([]) do
     {:ok, %{}}
   end
 
@@ -26,6 +27,7 @@ defmodule Backends.Influx.Backend do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
+  @impl true
   def handle_cast({:store_p1, message}, state) do
     Logger.info("Influx.Backend: Storing P1 message")
 
@@ -38,6 +40,7 @@ defmodule Backends.Influx.Backend do
     {:noreply, state}
   end
 
+  @impl true
   def handle_cast({:store_temporary_p1, message}, state) do
     :ok =
       Backends.Influx.TemporaryDataConnection.write(
@@ -53,12 +56,14 @@ defmodule Backends.Influx.Backend do
     {:noreply, state}
   end
 
+  @impl true
   def handle_cast({:store_water_tick}, state) do
     Backends.Influx.Connection.write(create_point("water", 0.5), log: false)
 
     {:noreply, state}
   end
 
+  @impl true
   def handle_cast({:store_solaredge, data}, state) do
     mapped_data =
       Enum.map(data, fn el ->

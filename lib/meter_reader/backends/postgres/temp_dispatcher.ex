@@ -19,6 +19,7 @@ defmodule Backends.Postgres.TempDispatcher do
   is then sent to the backends.
   """
 
+  @impl true
   def init(opts) do
     state = %{
       save_interval_in_seconds: opts[:save_interval_in_seconds]
@@ -39,6 +40,7 @@ defmodule Backends.Postgres.TempDispatcher do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
+  @impl true
   def handle_info(:save_to_postgres, state) do
     schedule_next_postgres_save(state)
 

@@ -9,7 +9,7 @@ defmodule MeterReader.PostgresSupervisor do
   def init(test_mode) do
     children = [
       {Postgrex, Application.get_env(:meter_reader, :postgres) ++ [name: :meter_reader_postgrex]},
-      {Backends.Postgres.Backend, Application.get_env(:meter_reader, :postgres)},
+      Backends.Postgres.Backend,
       {Backends.Postgres.Dispatcher,
        save_interval_in_seconds:
          Application.get_env(:meter_reader, :postgres_save_interval_in_seconds),
