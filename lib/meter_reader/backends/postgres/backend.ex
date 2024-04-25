@@ -35,7 +35,7 @@ defmodule Backends.Postgres.Backend do
 
   @impl true
   def handle_call({:store_water}, _from, state) do
-    Logger.debug("PostgresBackend: Storing water tick in postgres")
+    Logger.debug("Postgres.Backend: Storing water tick in postgres")
 
     query = """
       INSERT INTO water(created, usage_dl) VALUES($1::timestamp, $2::integer);
@@ -69,7 +69,7 @@ defmodule Backends.Postgres.Backend do
     item_count = length(data_to_insert)
 
     if item_count > 0 do
-      Logger.debug("PostgresBackend: Storing #{item_count} SolarEdge entries")
+      Logger.debug("Postgres.Backend: Storing #{item_count} SolarEdge entries")
 
       placeholders =
         Enum.map(0..(item_count - 1), fn i ->
@@ -93,7 +93,7 @@ defmodule Backends.Postgres.Backend do
         Logger.debug("Postgres.Backend.store_solaredge: enabled == false, not writing")
       end
     else
-      Logger.debug("PostgresBackend: No new SolarEdge entries")
+      Logger.debug("Postgres.Backend: No new SolarEdge entries")
     end
 
     {:reply, state, state}
