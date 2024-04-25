@@ -75,16 +75,10 @@ defmodule Backends.Influx.Dispatcher do
   end
 
   def schedule_next_influx_save(state) do
-    schedule_next_save(:save_to_influx, state[:save_interval_in_seconds])
-  end
-
-  def schedule_next_save(message, interval) do
-    time_until_save = MeterReader.IntervalCalculator.seconds_to_next(Time.utc_now(), interval)
-
-    Process.send_after(self(), message, time_until_save * 1000)
-
-    Logger.info(
-      "Influx.Dispatcher: Scheduling next #{message} store interval: #{time_until_save}s"
+    Scheduler.schedule_next(
+      {self(), :save_to_influx},
+      "Influx.Dispatcher",
+      {state[:save_interval_in_seconds]}
     )
   end
 end

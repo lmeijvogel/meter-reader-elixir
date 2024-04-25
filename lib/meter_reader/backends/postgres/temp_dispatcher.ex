@@ -60,17 +60,11 @@ defmodule Backends.Postgres.TempDispatcher do
     end
   end
 
-  def schedule_next_postgres_save(state) do
-    schedule_next_save(:save_to_postgres, state[:save_interval_in_seconds])
-  end
-
-  def schedule_next_save(message, interval) do
-    time_until_save = MeterReader.IntervalCalculator.seconds_to_next(Time.utc_now(), interval)
-
-    Process.send_after(self(), message, time_until_save * 1000)
-
-    Logger.info(
-      "Postgres.TempDispatcher: Scheduling next #{message} store interval: #{time_until_save}s"
+  defp schedule_next_postgres_save(state) do
+    Scheduler.schedule_next(
+      {self(), :save_to_postgres},
+      "Postgres.TempDispatcher",
+      {state[:save_interval_in_seconds]}
     )
   end
 end
