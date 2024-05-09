@@ -135,12 +135,8 @@ defmodule Backends.Postgres.Backend do
     Backends.Postgres.ProdEnabledStore.enabled?()
   end
 
-  def get_timestamp(p1_message) do
+  defp get_timestamp(p1_message) do
     {:ok, naive_datetime} = NaiveDateTime.from_iso8601(p1_message.timestamp)
     DateTime.from_naive(naive_datetime, "Europe/Amsterdam")
-  end
-
-  def print_error(error) do
-    IO.puts("Error while inserting into database: #{error.message}")
   end
 end

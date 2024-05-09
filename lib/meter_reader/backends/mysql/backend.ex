@@ -46,8 +46,4 @@ defmodule Backends.Mysql.Backend do
       {:error, error} -> {:reply, {:error, error}, state}
     end
   end
-
-  def print_error(error) do
-    IO.puts("Error while inserting into database: #{error.message}")
-  end
 end
