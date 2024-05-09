@@ -58,16 +58,7 @@ defmodule Backends.Postgres.Backend do
 
   @impl true
   def handle_call({:store_solaredge, production_data}, _from, state) do
-    existing_timestamps = existing_timestamps(Date.utc_today())
-
-    data_to_insert =
-      Enum.reject(production_data, fn row ->
-        Enum.find(existing_timestamps, fn ts ->
-          DateTime.compare(row.timestamp, ts) == :eq
-        end)
-      end)
-
-    item_count = length(data_to_insert)
+    item_count = length(production_data)
 
     if item_count > 0 do
       Logger.debug("Postgres.Backend: Storing #{item_count} SolarEdge entries")
@@ -80,12 +71,14 @@ defmodule Backends.Postgres.Backend do
       formatted_placeholders = Enum.join(placeholders, ", ")
 
       params =
-        Enum.flat_map(data_to_insert, fn row ->
+        Enum.flat_map(production_data, fn row ->
           [row.timestamp, row.value]
         end)
 
       query = """
         INSERT INTO generation(created, generation_wh) VALUES #{formatted_placeholders}
+        ON CONFLICT (created) DO UPDATE
+        SET generation_wh = EXCLUDED.generation_wh
       """
 
       if enabled?() do
@@ -136,14 +129,6 @@ defmodule Backends.Postgres.Backend do
     end
 
     :ok
-  end
-
-  defp existing_timestamps(date) do
-    existing_timestamps_query = "SELECT created FROM generation WHERE created >= $1::date"
-
-    {:ok, result} = Postgrex.query(:meter_reader_postgrex, existing_timestamps_query, [date])
-
-    Enum.map(result.rows, fn row -> List.first(row) end)
   end
 
   defp enabled? do
