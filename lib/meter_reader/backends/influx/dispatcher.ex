@@ -68,7 +68,7 @@ defmodule Backends.Influx.Dispatcher do
   end
 
   def schedule_next_influx_save(state) do
-    Scheduler.schedule_next(
+    MeterReader.Scheduler.schedule_next(
       {self(), :save_to_influx},
       "Influx.Dispatcher",
       {state[:save_interval_in_seconds]}

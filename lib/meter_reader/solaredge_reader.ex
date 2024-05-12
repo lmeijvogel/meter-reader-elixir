@@ -98,7 +98,7 @@ defmodule MeterReader.SolarEdgeReader do
   end
 
   defp schedule_next_retrieve(state) do
-    Scheduler.schedule_next(
+    MeterReader.Scheduler.schedule_next(
       {self(), :retrieve_data},
       "SolarEdge",
       {state[:start_hour], state[:end_hour], state[:interval_in_seconds],

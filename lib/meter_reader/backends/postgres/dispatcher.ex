@@ -53,7 +53,7 @@ defmodule Backends.Postgres.Dispatcher do
   end
 
   def schedule_next_postgres_save(state) do
-    Scheduler.schedule_next(
+    MeterReader.Scheduler.schedule_next(
       {self(), :save_to_postgres},
       "Postgres.Dispatcher",
       {state[:save_interval_in_seconds]}

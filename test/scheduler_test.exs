@@ -1,6 +1,6 @@
-defmodule SolarEdgeReaderTest do
+defmodule SchedulerTest do
   use ExUnit.Case
-  doctest MeterReader.SolarEdgeReader
+  doctest MeterReader.Scheduler
 
   test "returns the next time if it's before the daily end time" do
     now = NaiveDateTime.new!(2024, 10, 10, 15, 5, 0)
@@ -11,12 +11,9 @@ defmodule SolarEdgeReaderTest do
     interval_offset_in_seconds = 2 * 60
 
     result =
-      MeterReader.SolarEdgeReader.next_retrieve_datetime(
+      MeterReader.Scheduler.next_datetime(
         now,
-        start_hour,
-        end_hour,
-        interval_in_seconds,
-        interval_offset_in_seconds
+        {start_hour, end_hour, interval_in_seconds, interval_offset_in_seconds}
       )
 
     assert result == NaiveDateTime.new!(2024, 10, 10, 15, 17, 0)
@@ -33,12 +30,9 @@ defmodule SolarEdgeReaderTest do
     interval_offset_in_seconds = 2 * 60
 
     result =
-      MeterReader.SolarEdgeReader.next_retrieve_datetime(
+      MeterReader.Scheduler.next_datetime(
         now,
-        start_hour,
-        end_hour,
-        interval_in_seconds,
-        interval_offset_in_seconds
+        {start_hour, end_hour, interval_in_seconds, interval_offset_in_seconds}
       )
 
     assert result == NaiveDateTime.new!(2024, 10, 11, 10, 2, 0)

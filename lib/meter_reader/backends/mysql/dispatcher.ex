@@ -52,7 +52,7 @@ defmodule Backends.Mysql.Dispatcher do
   end
 
   def schedule_next_mysql_save(state) do
-    Scheduler.schedule_next(
+    MeterReader.Scheduler.schedule_next(
       {self(), :save_to_mysql},
       "Mysql.Dispatcher",
       {state[:save_interval_in_seconds]}

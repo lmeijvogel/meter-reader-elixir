@@ -1,4 +1,4 @@
-defmodule Scheduler do
+defmodule MeterReader.Scheduler do
   require Logger
 
   def schedule_next({pid, message}, sender_name, specs) do
