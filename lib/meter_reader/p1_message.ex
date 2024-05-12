@@ -73,16 +73,27 @@ defmodule MeterReader.P1Message do
   defp parse_parts("0-0:1.0.0", inputs, state) do
     raw_value = Enum.at(inputs, 0)
 
-    year = String.slice(raw_value, 0, 2)
-    month = String.slice(raw_value, 2, 2)
-    date = String.slice(raw_value, 4, 2)
-    hour = String.slice(raw_value, 6, 2)
-    minute = String.slice(raw_value, 8, 2)
-    second = String.slice(raw_value, 10, 2)
+    values =
+      raw_value
+      |> String.to_charlist()
+      |> Enum.chunk_every(2)
+      |> Enum.map(fn cl -> "#{cl}" end)
+      |> Enum.filter(&Regex.match?(~r[\d+], &1))
+      |> Enum.map(&String.to_integer(&1))
 
-    formatted_timestamp = "20#{year}-#{month}-#{date} #{hour}:#{minute}:#{second}"
+    naive_timestamp =
+      NaiveDateTime.new!(
+        2000 + Enum.at(values, 0),
+        Enum.at(values, 1),
+        Enum.at(values, 2),
+        Enum.at(values, 3),
+        Enum.at(values, 4),
+        Enum.at(values, 5)
+      )
 
-    %P1Message{state | timestamp: formatted_timestamp}
+    timestamp = DateTime.from_naive!(naive_timestamp, "Europe/Amsterdam")
+
+    %P1Message{state | timestamp: timestamp}
   end
 
   defp parse_parts("1-0:2.7.0", inputs, state) do

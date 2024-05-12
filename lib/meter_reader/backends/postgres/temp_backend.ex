@@ -35,10 +35,8 @@ defmodule Backends.Postgres.TempBackend do
   def handle_call({:store_p1, p1_message}, _from, state) do
     Logger.debug("Postgres.TempBackend: Storing p1 message: #{inspect(p1_message)}")
 
-    {:ok, timestamp} = get_timestamp(p1_message)
-
-    {:ok, _} = store_gas(p1_message, timestamp, state)
-    {:ok, _} = store_power(p1_message, timestamp, state)
+    {:ok, _} = store_gas(p1_message, p1_message.timestamp, state)
+    {:ok, _} = store_power(p1_message, p1_message.timestamp, state)
 
     {:reply, :ok, state}
   end
@@ -117,10 +115,5 @@ defmodule Backends.Postgres.TempBackend do
     ]
 
     Postgrex.query(state[:pid], query, params)
-  end
-
-  defp get_timestamp(p1_message) do
-    {:ok, naive_datetime} = NaiveDateTime.from_iso8601(p1_message.timestamp)
-    DateTime.from_naive(naive_datetime, "Europe/Amsterdam")
   end
 end

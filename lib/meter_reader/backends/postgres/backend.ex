@@ -26,10 +26,8 @@ defmodule Backends.Postgres.Backend do
   @impl true
   def handle_call({:store_p1, p1_message}, _from, state) do
     Logger.info("Postgres.Backend: Storing P1 data")
-    {:ok, timestamp} = get_timestamp(p1_message)
-
-    :ok = store_gas(p1_message, timestamp)
-    :ok = store_power(p1_message, timestamp)
+    :ok = store_gas(p1_message, p1_message.timestamp)
+    :ok = store_power(p1_message, p1_message.timestamp)
 
     {:reply, :ok, state}
   end
@@ -133,10 +131,5 @@ defmodule Backends.Postgres.Backend do
 
   defp enabled? do
     Backends.Postgres.ProdEnabledStore.enabled?()
-  end
-
-  defp get_timestamp(p1_message) do
-    {:ok, naive_datetime} = NaiveDateTime.from_iso8601(p1_message.timestamp)
-    DateTime.from_naive(naive_datetime, "Europe/Amsterdam")
   end
 end

@@ -29,7 +29,9 @@ defmodule MessageDecoderTest do
     {:added, state} = @subject.decode("0-0:1.0.0(240228101631W)", message_start_marker, state)
     {:done, state} = @subject.decode("!E62D", message_start_marker, state)
 
-    assert state.timestamp == "2024-02-28 10:16:31"
+    naive_datetime = NaiveDateTime.new!(2024, 2, 28, 10, 16, 31)
+
+    assert state.timestamp == DateTime.from_naive!(naive_datetime, "Europe/Amsterdam")
   end
 
   test "decode levering_current" do
