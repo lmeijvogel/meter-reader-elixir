@@ -172,7 +172,6 @@ config :meter_reader,
        shared_influx_config ++ [bucket: "readings_last_hour"]
 
 config :meter_reader, :solar_edge,
-  start: true,
   start_hour: 7,
   end_hour: 22,
   interval_in_seconds: 900,

@@ -20,12 +20,11 @@ defmodule MeterReader.Supervisor do
       {MeterReader.PostgresTempSupervisor, test_mode()},
       {MeterReader.WaterReader, water_reader_config()},
       {MeterReader.P1Reader, p1_reader_config()},
-      {MeterReader.SolarEdgeReader, Application.get_env(:meter_reader, :solar_edge)}
+      {MeterReader.SolarEdgeReader,
+       Application.get_env(:meter_reader, :solar_edge) ++ [start: !test_mode()]}
     ]
 
-    if !test_mode() do
-      Supervisor.init(children, strategy: :rest_for_one, name: MeterReader.Supervisor)
-    end
+    Supervisor.init(children, strategy: :rest_for_one, name: MeterReader.Supervisor)
   end
 
   def myqxl_config do
@@ -51,6 +50,6 @@ defmodule MeterReader.Supervisor do
   end
 
   def test_mode do
-    Application.get_env(:meter_reader, :test_mode)
+    Mix.env() == :test
   end
 end
