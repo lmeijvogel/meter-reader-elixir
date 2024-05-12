@@ -26,15 +26,41 @@ defmodule MeterReader.SolarEdgeReader do
     GenServer.cast(__MODULE__, :retrieve_data)
   end
 
+  def retrieve_data(day) do
+    GenServer.cast(__MODULE__, {:retrieve_data, day})
+  end
+
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   @impl true
+  def handle_cast({:retrieve_data, day}, state) do
+    perform_retrieve_data(day, state)
+
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_cast(:retrieve_data, state) do
+    now = NaiveDateTime.local_now()
+
+    perform_retrieve_data(now, state)
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:retrieve_data, state) do
     schedule_next_retrieve(state)
 
-    {:ok, response_body} = perform_api_request(state)
+    retrieve_data()
+
+    {:noreply, state}
+  end
+
+  defp perform_retrieve_data(day, state) do
+    {:ok, response_body} = perform_api_request(day, state)
     {:ok, message} = MeterReader.SolarEdgeMessageDecoder.decode_message(response_body)
 
     Backends.Influx.Backend.store_solaredge(message[:production])
@@ -49,22 +75,11 @@ defmodule MeterReader.SolarEdgeReader do
     end
 
     Backends.Postgres.TempBackend.store_solaredge(mapped_production)
-
-    {:noreply, state}
   end
 
-  @impl true
-  def handle_info(:retrieve_data, state) do
-    retrieve_data()
-
-    {:noreply, state}
-  end
-
-  def perform_api_request(state) do
-    now = NaiveDateTime.local_now()
-
-    start_time = NaiveDateTime.new!(now.year, now.month, now.day, 0, 0, 0)
-    end_time = NaiveDateTime.new!(now.year, now.month, now.day, 23, 59, 59)
+  defp perform_api_request(day, state) do
+    start_time = NaiveDateTime.new!(day.year, day.month, day.day, 0, 0, 0)
+    end_time = NaiveDateTime.new!(day.year, day.month, day.day, 23, 59, 59)
 
     url = "#{state[:host]}/site/#{state[:site_id]}/energyDetails"
     Logger.debug("SolarEdgeReader: Requesting URL #{url}")
