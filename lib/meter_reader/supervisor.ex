@@ -50,6 +50,7 @@ defmodule MeterReader.Supervisor do
   end
 
   def test_mode do
-    Mix.env() == :test
+    # In production, Mix is not included, so return false in that case
+    function_exported?(Mix, :env, 0) && Mix.env() == :test
   end
 end
