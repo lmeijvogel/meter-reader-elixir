@@ -11,17 +11,17 @@ defmodule MeterReader.Supervisor do
       {MyXQL, myqxl_config()},
       {Redix, redix_config()},
       {Backends.Postgres.ProdEnabledStore, true},
-      {MeterReader.WaterTickStore, get_start_data: !test_mode()},
+      {MeterReader.WaterTickStore, get_start_data: !test_mode?()},
       {MeterReader.P1MessageStore, :ok},
       {Backends.RedisBackend, Application.get_env(:meter_reader, :redis)},
-      {MeterReader.InfluxSupervisor, test_mode()},
-      {MeterReader.MysqlSupervisor, test_mode()},
-      {MeterReader.PostgresSupervisor, test_mode()},
-      {MeterReader.PostgresTempSupervisor, test_mode()},
+      {MeterReader.InfluxSupervisor, test_mode?()},
+      {MeterReader.MysqlSupervisor, test_mode?()},
+      {MeterReader.PostgresSupervisor, test_mode?()},
+      {MeterReader.PostgresTempSupervisor, test_mode?()},
       {MeterReader.WaterReader, water_reader_config()},
       {MeterReader.P1Reader, p1_reader_config()},
       {MeterReader.SolarEdgeReader,
-       Application.get_env(:meter_reader, :solar_edge) ++ [start: !test_mode()]}
+       Application.get_env(:meter_reader, :solar_edge) ++ [start: !test_mode?()]}
     ]
 
     Supervisor.init(children, strategy: :rest_for_one, name: MeterReader.Supervisor)
@@ -42,14 +42,14 @@ defmodule MeterReader.Supervisor do
   end
 
   def water_reader_config do
-    [start: !test_mode()] ++ Application.get_env(:meter_reader, :water_meter)
+    [start: !test_mode?()] ++ Application.get_env(:meter_reader, :water_meter)
   end
 
   def p1_reader_config do
-    [start: !test_mode()] ++ Application.get_env(:meter_reader, :p1_reader)
+    [start: !test_mode?()] ++ Application.get_env(:meter_reader, :p1_reader)
   end
 
-  def test_mode do
+  def test_mode? do
     # In production, Mix is not included, so return false in that case
     function_exported?(Mix, :env, 0) && Mix.env() == :test
   end
