@@ -36,7 +36,8 @@ config :meter_reader, :sql,
 
 config :meter_reader, :redis,
   host: secrets.redis_host,
-  redis_current_latest_measurements_list_name: "latest_current_measurements",
+  redis_current_last_measurement_name: "last_current_measurement",
+  redis_current_recent_measurements_list_name: "recent_current_measurements",
   redis_water_last_ticks_list_name: "water_meter_last_ticks"
 
 config :meter_reader, :postgres,

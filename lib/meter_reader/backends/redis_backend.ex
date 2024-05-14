@@ -3,14 +3,18 @@ defmodule Backends.RedisBackend do
 
   use GenServer
 
-  @number_of_current_entries 5
+  @seconds_between_power_reports 5
+  @seconds_of_reports_to_store 7200
+  @number_of_current_entries @seconds_of_reports_to_store / @seconds_between_power_reports
 
   @impl true
   def init(config) do
     state = %{
-      redis_current_latest_measurements_list_name:
-        config[:redis_current_latest_measurements_list_name],
-      redis_water_last_ticks_list_name: config[:redis_water_last_ticks_list_name]
+      redis_current_recent_measurements_list_name:
+        config[:redis_current_recent_measurements_list_name],
+      redis_current_last_measurement_name: config[:redis_current_last_measurement_name],
+      redis_water_last_ticks_list_name: config[:redis_water_last_ticks_list_name],
+      last_stored_timestamp: DateTime.utc_now()
     }
 
     {:ok, state}
@@ -30,22 +34,46 @@ defmodule Backends.RedisBackend do
 
   @impl true
   def handle_cast({:p1_message_received, message}, state) do
-    if message != nil do
+    if message == nil do
+      {:noreply, state}
+    else
       power = message.stroom_current - message.levering_current
 
-      # LPUSH: add the value to the head of the list
-      Redix.pipeline(:redix, [
-        ["LPUSH", state.redis_current_latest_measurements_list_name, round(power)],
-        [
-          "LTRIM",
-          state.redis_current_latest_measurements_list_name,
-          0,
-          @number_of_current_entries - 1
-        ]
-      ])
-    end
+      # Always store the last power measurement
+      Redix.command(:redix, ["SET", state.redis_current_last_measurement_name, power])
 
-    {:noreply, state}
+      last_stored_timestamp = state.last_stored_timestamp
+      seconds_since_last = DateTime.diff(message.timestamp, last_stored_timestamp)
+
+      # Store last hours of data once every 5 seconds until I know the memory usage
+      if seconds_since_last < @seconds_between_power_reports do
+        {:noreply, state}
+      else
+        Logger.debug("Backends.RedisBackend: Storing temporary power usage")
+
+        data_for_redis = %{
+          timestamp: message.timestamp,
+          power: round(power)
+        }
+
+        # LPUSH: add the value to the head of the list
+        Redix.pipeline(:redix, [
+          [
+            "LPUSH",
+            state.redis_current_recent_measurements_list_name,
+            Jason.encode!(data_for_redis)
+          ],
+          [
+            "LTRIM",
+            state.redis_current_recent_measurements_list_name,
+            0,
+            @number_of_current_entries - 1
+          ]
+        ])
+
+        {:noreply, Map.replace(state, :last_stored_timestamp, message.timestamp)}
+      end
+    end
   end
 
   @impl true
