@@ -5,7 +5,7 @@ defmodule Backends.RedisBackend do
 
   @seconds_between_power_reports 5
   @seconds_of_reports_to_store 7200
-  @number_of_current_entries @seconds_of_reports_to_store / @seconds_between_power_reports
+  @number_of_current_entries div(@seconds_of_reports_to_store, @seconds_between_power_reports)
 
   @impl true
   def init(config) do
