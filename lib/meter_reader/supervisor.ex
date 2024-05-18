@@ -7,11 +7,13 @@ defmodule MeterReader.Supervisor do
 
   @impl true
   def init(:ok) do
+    is_prod = !test_mode?()
+
     children = [
       {MyXQL, myqxl_config()},
       {Redix, redix_config()},
       {Backends.Postgres.ProdEnabledStore, true},
-      {MeterReader.WaterTickStore, get_start_data: !test_mode?()},
+      {MeterReader.WaterTickStore, get_start_data: is_prod},
       {MeterReader.P1MessageStore, :ok},
       {Backends.RedisBackend, Application.get_env(:meter_reader, :redis)},
       {MeterReader.InfluxSupervisor, test_mode?()},
@@ -21,7 +23,9 @@ defmodule MeterReader.Supervisor do
       {MeterReader.WaterReader, water_reader_config()},
       {MeterReader.P1Reader, p1_reader_config()},
       {MeterReader.SolarEdgeReader,
-       Application.get_env(:meter_reader, :solar_edge) ++ [start: !test_mode?()]}
+      Application.get_env(:meter_reader, :solar_edge) ++ [start: is_prod]},
+      {MeterReader.HomeAssistantReader,
+       Application.get_env(:meter_reader, :home_assistant) ++ [start: is_prod]}
     ]
 
     Supervisor.init(children, strategy: :rest_for_one, name: MeterReader.Supervisor)
