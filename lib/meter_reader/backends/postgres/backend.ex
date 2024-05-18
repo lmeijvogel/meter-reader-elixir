@@ -23,6 +23,10 @@ defmodule Backends.Postgres.Backend do
     GenServer.call(__MODULE__, {:store_solaredge, production_data})
   end
 
+  def store_temperatures(temperatures, created) do
+    GenServer.call(__MODULE__, {:store_temperatures, temperatures, created})
+  end
+
   @impl true
   def handle_call({:store_p1, p1_message}, _from, state) do
     Logger.info("Postgres.Backend: Storing P1 data")
@@ -87,6 +91,31 @@ defmodule Backends.Postgres.Backend do
     else
       Logger.debug("Postgres.Backend: No new SolarEdge entries")
     end
+
+    {:reply, state, state}
+  end
+
+  @impl true
+  def handle_call({:store_temperatures, temperatures, created}, _from, state) do
+    fields = Map.keys(temperatures)
+
+    values =
+      temperatures
+      |> Map.values()
+      |> Enum.map(fn val -> trunc(val * 10) end)
+
+    placeholders =
+      Enum.map(0..(length(values) - 1), fn i ->
+        "$#{i + 2}::integer"
+      end)
+
+    query = """
+      INSERT INTO temperatures(created, #{Enum.join(fields, ", ")}) VALUES ($1::timestamp, #{Enum.join(placeholders, ", ")})
+    """
+
+    params = [created] ++ values
+
+    {:ok, _result} = Postgrex.query(:meter_reader_postgrex, query, params)
 
     {:reply, state, state}
   end

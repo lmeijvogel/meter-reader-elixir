@@ -24,6 +24,13 @@ config :nerves, :firmware, rootfs_overlay: "rootfs_overlay"
 
 config :nerves, source_date_epoch: "1710624364"
 
+config :meter_reader, :home_assistant,
+  sensors: %{
+    motionsensor_air_temperature: "huiskamer",
+    motionsensor_tuinkamer_air_temperature: "tuinkamer",
+    motionsensor_zolder_air_temperature: "zolder"
+  }
+
 if Mix.target() == :host do
   import_config "host.exs"
 else

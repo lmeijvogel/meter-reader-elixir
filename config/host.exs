@@ -94,3 +94,8 @@ config :meter_reader, :solar_edge,
   host: "http://127.0.0.1:4567",
   site_id: secrets.solaredge_site_id,
   api_key: secrets.solaredge_api_key
+
+config :meter_reader, :home_assistant,
+  interval_in_seconds: 10,
+  host: secrets.homeassistant_host,
+  api_key: secrets.homeassistant_api_key

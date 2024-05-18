@@ -181,6 +181,11 @@ config :meter_reader, :solar_edge,
   site_id: secrets.solaredge_site_id,
   api_key: secrets.solaredge_api_key
 
+config :meter_reader, :home_assistant,
+  interval_in_seconds: 15 * 60,
+  host: secrets.homeassistant_host,
+  api_key: secrets.homeassistant_api_key
+
 # Import target specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 # Uncomment to use target specific configurations
