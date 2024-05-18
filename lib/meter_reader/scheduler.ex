@@ -2,7 +2,7 @@ defmodule MeterReader.Scheduler do
   require Logger
 
   def schedule_next({pid, message}, sender_name, specs) do
-    now = NaiveDateTime.local_now()
+    now = DateTime.from_naive!(NaiveDateTime.local_now(), "Europe/Amsterdam")
 
     next =
       next_datetime(
@@ -11,13 +11,13 @@ defmodule MeterReader.Scheduler do
       )
 
     Logger.info(
-      "#{sender_name}: Scheduling next #{message} at #{NaiveDateTime.to_string(next)} (#{NaiveDateTime.diff(next, now)} seconds)"
+      "#{sender_name}: Scheduling next #{message} at #{DateTime.to_string(next)} (#{DateTime.diff(next, now)} seconds)"
     )
 
     Process.send_after(
       pid,
       message,
-      NaiveDateTime.diff(next, now) * 1000
+      DateTime.diff(next, now) * 1000
     )
   end
 
@@ -42,12 +42,12 @@ defmodule MeterReader.Scheduler do
     # 'interval_offset_in_seconds' is an optional after that calculated time, so if the calculated time is 10 and the delay is 3,
     # then the request will be sent at 13.
     next_retrieve_time =
-      NaiveDateTime.add(now, seconds_to_next + interval_offset_in_seconds)
+      DateTime.add(now, seconds_to_next + interval_offset_in_seconds)
 
     if next_retrieve_time.hour < end_hour do
       next_retrieve_time
     else
-      tomorrow = NaiveDateTime.add(now, 1, :day)
+      tomorrow = DateTime.add(now, 1, :day)
 
       # Do not take daylight savings time into account for scheduling the retrieval.
       #
@@ -55,7 +55,7 @@ defmodule MeterReader.Scheduler do
       # it will start at 6:00 or at 08:00 instead of 07:00. 
       # Since we retrieve all measurements of the whole day every time, we won't miss
       # anything.
-      NaiveDateTime.add(
+      DateTime.add(
         %{tomorrow | hour: start_hour, minute: 0, second: 0},
         interval_offset_in_seconds
       )
