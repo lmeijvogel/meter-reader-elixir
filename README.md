@@ -4,9 +4,9 @@
 
 The current meter-reader service uses a few services to store data:
 
-### InfluxDB
+### Postgres (Timescale)
 
-This is my main storage: The web app will query this. Currently every measurement is stored (every second D:).
+This is my main storage: The web app will query this. Currently every measurement is stored.
 
 ### MySQL / MariaDB
 
@@ -29,10 +29,6 @@ Both of these can be replaced by Elixir agents.
 ## Mysql
 
 Currently trying plain SQL via MyXQL: https://github.com/elixir-ecto/myxql
-
-## InfluxDB
-
-Nothing yet, will try https://github.com/mneudert/instream
 
 ## Example P1 report
 ```

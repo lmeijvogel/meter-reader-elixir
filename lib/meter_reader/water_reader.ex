@@ -48,14 +48,11 @@ defmodule MeterReader.WaterReader do
     if is_usage_message(data) do
       MeterReader.WaterTickStore.increment()
 
-      Backends.Influx.Dispatcher.water_tick_received()
       Backends.RedisBackend.store_water_tick()
 
       if Backends.Postgres.ProdEnabledStore.enabled?() do
         Backends.Postgres.Dispatcher.water_tick_received()
       end
-
-      Backends.Postgres.TempDispatcher.water_tick_received()
     end
 
     {:noreply, state}

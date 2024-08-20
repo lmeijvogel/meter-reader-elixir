@@ -63,8 +63,6 @@ defmodule MeterReader.SolarEdgeReader do
     {:ok, response_body} = perform_api_request(day, state)
     {:ok, message} = MeterReader.SolarEdgeMessageDecoder.decode_message(response_body)
 
-    Backends.Influx.Backend.store_solaredge(message[:production])
-
     mapped_production =
       Enum.map(message[:production], fn row ->
         %{timestamp: DateTime.from_naive!(row.date, "Europe/Amsterdam"), value: row.value}
@@ -73,8 +71,6 @@ defmodule MeterReader.SolarEdgeReader do
     if Backends.Postgres.ProdEnabledStore.enabled?() do
       Backends.Postgres.Backend.store_solaredge(mapped_production)
     end
-
-    Backends.Postgres.TempBackend.store_solaredge(mapped_production)
   end
 
   defp perform_api_request(day, state) do

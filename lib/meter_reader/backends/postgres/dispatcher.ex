@@ -8,11 +8,6 @@ defmodule Backends.Postgres.Dispatcher do
 
   SolarEdge data does not go through this module.
 
-  When a water tick is received, it is immediately sent to InfluxDB. When the
-  current P1 readings are received, the message is kept in state and the
-  current energy usage/generation is sent to a temporary InfluxDB backend that
-  deletes older data.
-
   The permanent data is stored at intervals to not fill up the data stores too quickly.
 
   To do this, it keeps the latest P1 message -- its data is cumulative. The latest message

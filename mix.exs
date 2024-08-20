@@ -75,7 +75,6 @@ defmodule MeterReader.MixProject do
       {:circuits_uart, "~> 1.5"},
       {:myxql, "~> 0.6.0"},
       {:postgrex, "~> 0.17.5"},
-      {:instream, "~> 2.0"},
       {:timex, "~> 3.7.11"},
       {:tzdata, "~> 1.1"},
       {:jason, "~> 1.3"},

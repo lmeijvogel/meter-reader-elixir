@@ -57,7 +57,6 @@ defmodule MeterReader.P1Reader do
       if MeterReader.P1Message.valid?(decoded_message, previous_message) do
         MeterReader.P1MessageStore.set(decoded_message)
 
-        Backends.Influx.Dispatcher.p1_message_received(decoded_message)
         Backends.RedisBackend.p1_message_received(decoded_message)
       else
         Logger.warning("P1Reader: Dropping invalid message")

@@ -109,7 +109,6 @@ config :meter_reader,
   # Backends
   db_save_interval_in_seconds: 600,
   postgres_save_interval_in_seconds: 60,
-  influx_save_interval_in_seconds: 60
 
 config :meter_reader, :redis,
   host: secrets.redis_host,
@@ -152,25 +151,6 @@ config :meter_reader, :p1_reader,
 
 # LED_BRIGHTNESS_PATH: "/sys/class/leds/led0/brightness"
 # LED_TRIGGER_PATH: "/sys/class/leds/led0/trigger"
-
-shared_influx_config = [
-  auth: [
-    method: :token,
-    token: secrets.influx_token
-  ],
-  org: secrets.influx_org,
-  # Statically configured on VM
-  host: secrets.influx_hostname,
-  version: :v2
-]
-
-config :meter_reader,
-       Backends.Influx.Connection,
-       shared_influx_config ++ [bucket: "readings"]
-
-config :meter_reader,
-       Backends.Influx.TemporaryDataConnection,
-       shared_influx_config ++ [bucket: "readings_last_hour"]
 
 config :meter_reader, :solar_edge,
   start_hour: 7,

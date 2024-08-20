@@ -27,22 +27,6 @@ config :meter_reader, :p1_reader,
   stop_bits: 1,
   parity: :even
 
-shared_influx_config = [
-  auth: [
-    method: :token,
-    token: ""
-  ],
-  org: "home",
-  host: "127.0.0.1",
-  version: :v2
-]
-
-config :meter_reader, Backends.InfluxConnection, shared_influx_config ++ [bucket: "readings"]
-
-config :meter_reader,
-       Backends.InfluxTemporaryDataConnection,
-       shared_influx_config ++ [bucket: "readings_last_hour"]
-
 config :meter_reader, :solar_edge,
   start: false,
   host: "",

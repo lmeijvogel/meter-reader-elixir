@@ -25,8 +25,7 @@ config :nerves_runtime,
 config :meter_reader,
   # Backends
   db_save_interval_in_seconds: 8,
-  postgres_save_interval_in_seconds: 8,
-  influx_save_interval_in_seconds: 3
+  postgres_save_interval_in_seconds: 8
 
 config :meter_reader, :sql,
   hostname: secrets.mysql_hostname,
@@ -67,31 +66,12 @@ config :meter_reader, :p1_reader,
   parity: :even,
   message_start_marker: secrets.p1_message_start_marker
 
-shared_influx_config = [
-  auth: [
-    method: :token,
-    token: secrets.influx_token
-  ],
-  org: secrets.influx_org,
-  # Statically configured on VM
-  host: secrets.influx_hostname,
-  version: :v2
-]
-
-config :meter_reader,
-       Backends.Influx.Connection,
-       shared_influx_config ++ [bucket: "readings"]
-
-config :meter_reader,
-       Backends.Influx.TemporaryDataConnection,
-       shared_influx_config ++ [bucket: "readings_last_hour"]
-
 config :meter_reader, :solar_edge,
   start_hour: 7,
   end_hour: 23,
   interval_in_seconds: 10,
   interval_offset_in_seconds: 0,
-  host: "http://127.0.0.1:4567",
+  host: "http://127.0.0.1:7657",
   site_id: secrets.solaredge_site_id,
   api_key: secrets.solaredge_api_key
 

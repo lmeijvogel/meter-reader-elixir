@@ -30,20 +30,3 @@ config :meter_reader, :solar_edge,
   host: "http://127.0.0.1:8080/"
   site_id: "12345",
   api_key: "abcdefg"
-
-shared_influx_config = [
-  auth: [
-    method: :token,
-    token: "<FILL IN YOUR TOKEN HERE>"
-  ],
-  org: "home",
-  # Statically configured on VM
-  host: "192.168.56.8",
-  version: :v2
-]
-
-config :meter_reader, Backends.InfluxConnection, shared_influx_config ++ [bucket: "readings"]
-
-config :meter_reader,
-       Backends.InfluxTemporaryDataConnection,
-       shared_influx_config ++ [bucket: "readings_last_hour"]

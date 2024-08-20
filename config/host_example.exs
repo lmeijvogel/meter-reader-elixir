@@ -27,7 +27,6 @@ config :meter_reader,
   redis_measurements_list_name: "latest_measurements",
   redis_host: "localhost",
   db_save_interval_in_seconds: 8,
-  influx_save_interval_in_seconds: 3
 
 config :meter_reader, :sql,
   hostname: "127.0.0.1",
@@ -50,23 +49,6 @@ config :meter_reader, :p1_reader,
   stop_bits: 1,
   parity: :even,
   message_start_marker: "/ABCDEFGHI-METER"
-
-shared_influx_config = [
-  auth: [
-    method: :token,
-    token: "<token>"
-  ],
-  org: "home",
-  # Statically configured on VM
-  host: "192.168.56.8",
-  version: :v2
-]
-
-config :meter_reader, Backends.InfluxConnection, shared_influx_config ++ [bucket: "readings"]
-
-config :meter_reader,
-       Backends.InfluxTemporaryDataConnection,
-       shared_influx_config ++ [bucket: "readings_last_hour"]
 
 config :meter_reader, :solar_edge,
   start: true,
