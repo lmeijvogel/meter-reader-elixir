@@ -2,7 +2,7 @@ defmodule MeterReader.MixProject do
   use Mix.Project
 
   @app :meter_reader
-  @version "0.2.0"
+  @version "1.0.0"
   @all_targets [
     :rpi,
     :rpi0,
