@@ -108,7 +108,7 @@ config :mdns_lite,
 config :meter_reader,
   # Backends
   db_save_interval_in_seconds: 600,
-  postgres_save_interval_in_seconds: 60,
+  postgres_save_interval_in_seconds: 60
 
 config :meter_reader, :redis,
   host: secrets.redis_host,
