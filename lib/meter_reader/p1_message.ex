@@ -24,11 +24,11 @@ defmodule MeterReader.P1Message do
             contains_start?: false,
             complete?: false
 
-  def decode("", _, state) do
+  def decode("", _, state, _now) do
     {:added, state}
   end
 
-  def decode(line, message_start_marker, state) do
+  def decode(line, message_start_marker, state, now) do
     cond do
       # The message start marker starts with `/` and a known string
       # We add a 'full_message' field so the client can validate that it indeed received a message
@@ -43,7 +43,7 @@ defmodule MeterReader.P1Message do
       true ->
         [field | values] = String.split(line, ~r{[()]}, trim: true)
 
-        updated_state = parse_parts(field, values, state)
+        updated_state = parse_parts(field, values, state, now)
 
         {:added, updated_state}
     end
@@ -70,7 +70,7 @@ defmodule MeterReader.P1Message do
     end
   end
 
-  defp parse_parts("0-0:1.0.0", inputs, state) do
+  defp parse_parts("0-0:1.0.0", inputs, state, now) do
     raw_value = Enum.at(inputs, 0)
 
     values =
@@ -91,48 +91,62 @@ defmodule MeterReader.P1Message do
         Enum.at(values, 5)
       )
 
-    timestamp = DateTime.from_naive!(naive_timestamp, "Europe/Amsterdam")
+    timestamp = parse_timestamp(DateTime.from_naive(naive_timestamp, "Europe/Amsterdam"), now)
 
     %P1Message{state | timestamp: timestamp}
   end
 
-  defp parse_parts("1-0:2.7.0", inputs, state) do
+  defp parse_parts("1-0:2.7.0", inputs, state, _now) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
     %P1Message{state | levering_current: value * 1000}
   end
 
-  defp parse_parts("1-0:2.8.1", inputs, state) do
+  defp parse_parts("1-0:2.8.1", inputs, state, _now) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
 
     %P1Message{state | levering_dal: value}
   end
 
-  defp parse_parts("1-0:2.8.2", inputs, state) do
+  defp parse_parts("1-0:2.8.2", inputs, state, _now) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
     %P1Message{state | levering_piek: value}
   end
 
-  defp parse_parts("1-0:1.7.0", inputs, state) do
+  defp parse_parts("1-0:1.7.0", inputs, state, _now) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
     %P1Message{state | stroom_current: value * 1000}
   end
 
-  defp parse_parts("1-0:1.8.1", inputs, state) do
+  defp parse_parts("1-0:1.8.1", inputs, state, _now) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
     %P1Message{state | stroom_dal: value}
   end
 
-  defp parse_parts("1-0:1.8.2", inputs, state) do
+  defp parse_parts("1-0:1.8.2", inputs, state, _now) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
     %P1Message{state | stroom_piek: value}
   end
 
-  defp parse_parts("0-1:24.2.1", inputs, state) do
+  defp parse_parts("0-1:24.2.1", inputs, state, _now) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 1))
     %P1Message{state | gas: value}
   end
 
-  defp parse_parts(_, _, state) do
+  defp parse_parts(_, _, state, _now) do
     state
+  end
+
+  defp parse_timestamp({:ok, date}, _now) do
+    date
+  end
+
+  # It is possible for a time to be ambiguous, for example,
+  # it can be either CEST and CET.
+  #
+  # This chooses the date depending on what the system time zone is.
+  defp parse_timestamp({:ambiguous, first, second}, now) do
+    Enum.find([first, second], fn dt ->
+      dt.time_zone == now.time_zone && dt.zone_abbr == now.zone_abbr
+    end)
   end
 end

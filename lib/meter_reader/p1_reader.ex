@@ -48,7 +48,8 @@ defmodule MeterReader.P1Reader do
       MeterReader.P1Message.decode(
         data,
         state.p1_config[:message_start_marker],
-        state.decoded_message
+        state.decoded_message,
+        DateTime.now!("Europe/Amsterdam")
       )
 
     if response == :done and decoded_message.complete? do
