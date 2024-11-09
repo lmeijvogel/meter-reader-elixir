@@ -21,12 +21,17 @@ defmodule MeterReader.Supervisor do
       {MeterReader.WaterReader, water_reader_config()},
       {MeterReader.P1Reader, p1_reader_config()},
       {MeterReader.SolarEdgeReader,
-      Application.get_env(:meter_reader, :solar_edge) ++ [start: is_prod]},
+       Application.get_env(:meter_reader, :solar_edge) ++ [start: is_prod]},
       {MeterReader.HomeAssistantReader,
        Application.get_env(:meter_reader, :home_assistant) ++ [start: is_prod]}
     ]
 
-    Supervisor.init(children, strategy: :rest_for_one, name: MeterReader.Supervisor)
+    Supervisor.init(children,
+      strategy: :rest_for_one,
+      name: MeterReader.Supervisor,
+      max_restarts: 99,
+      max_seconds: 10
+    )
   end
 
   def myqxl_config do
