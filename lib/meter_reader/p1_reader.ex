@@ -52,7 +52,7 @@ defmodule MeterReader.P1Reader do
         DateTime.now!("Europe/Amsterdam")
       )
 
-    if response == :done and decoded_message.complete? do
+    if response == :done do
       previous_message = MeterReader.P1MessageStore.get()
 
       if MeterReader.P1Message.valid?(decoded_message, previous_message) do

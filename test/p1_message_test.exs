@@ -1,4 +1,5 @@
 defmodule MessageDecoderTest do
+  alias MeterReader.P1Message
   use ExUnit.Case
   doctest MeterReader.P1Message
 
@@ -17,9 +18,10 @@ defmodule MessageDecoderTest do
 
     {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{}, nil)
     {:added, state} = @subject.decode("", message_start_marker, state, nil)
-    {:done, state} = @subject.decode("!E62D", message_start_marker, state, nil)
 
-    assert state.complete?
+    {result, _} = @subject.decode("!E62D", message_start_marker, state, nil)
+
+    assert result == :done
   end
 
   test "decode timestamp" do
@@ -76,6 +78,65 @@ defmodule MessageDecoderTest do
     {:done, state} = @subject.decode("!E62D", message_start_marker, state, nil)
 
     assert state.timestamp == now
+  end
+
+  test "decode invalid timestamp" do
+    message_start_marker = "/ABCDEFGHI-METER"
+
+    {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{}, nil)
+
+    # Some valid data to check that it's removed later on
+    {:added, state} = @subject.decode("1-0:1.7.0(00.300*kW)", message_start_marker, state, nil)
+
+    assert state.stroom_current != nil
+
+    {result, state} =
+      @subject.decode(
+        "0-0:1.0.0(241331256161W)",
+        message_start_marker,
+        state,
+        DateTime.now!("Europe/Amsterdam")
+      )
+
+    assert result == :error
+
+    # The message should be empty
+    assert state == %P1Message{}
+  end
+
+  test "skips the rest of the message after an error" do
+    message_start_marker = "/ABCDEFGHI-METER"
+
+    {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{}, nil)
+
+    # Submit an invalid field
+    {result, state} =
+      @subject.decode(
+        "0-0:1.0.0(INVALID_TIME)",
+        message_start_marker,
+        state,
+        DateTime.now!("Europe/Amsterdam")
+      )
+
+    assert result == :error
+
+    # Add a new reading. This should not be processed
+    {result, state} = @subject.decode("1-0:2.7.0(00.168*kW)", message_start_marker, state, nil)
+
+    assert result == :waiting
+    assert state == %P1Message{}
+
+    {:waiting, _} = @subject.decode("!E62D", message_start_marker, state, nil)
+
+    # Start a new, valid message
+    {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{}, nil)
+    {:added, state} = @subject.decode("1-0:1.7.0(00.300*kW)", message_start_marker, state, nil)
+    {result, state} = @subject.decode("!E62D", message_start_marker, state, nil)
+
+    assert result == :done
+
+    # The message should have the given field
+    assert state == %P1Message{contains_start?: true, stroom_current: 300.0}
   end
 
   test "decode levering_current" do
@@ -183,7 +244,7 @@ defmodule MessageDecoderTest do
   test "decode when starting halfway through a message" do
     message_start_marker = "/ABCDEFGHI-METER"
 
-    {:added, state} =
+    {:waiting, message} =
       @subject.decode(
         "0-1:24.2.1(240224163506W)(03991.882*m3)",
         message_start_marker,
@@ -191,10 +252,14 @@ defmodule MessageDecoderTest do
         nil
       )
 
-    {result_type, message} = @subject.decode("!E62D", message_start_marker, state, nil)
+    # Don't initialize incomplete messages
+    assert message == %P1Message{}
 
-    assert result_type == :done
-    assert !message.complete?
+    {result_type, message} = @subject.decode("!E62D", message_start_marker, message, nil)
+
+    assert result_type == :waiting
+    # Don't initialize incomplete messages
+    assert message == %P1Message{}
 
     {:added, state} = @subject.decode("/ABCDEFGHI-METER", message_start_marker, %{}, nil)
 
