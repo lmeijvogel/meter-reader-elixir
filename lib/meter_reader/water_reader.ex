@@ -50,9 +50,7 @@ defmodule MeterReader.WaterReader do
 
       Backends.RedisBackend.store_water_tick()
 
-      if Backends.Postgres.ProdEnabledStore.enabled?() do
-        Backends.Postgres.Dispatcher.water_tick_received()
-      end
+      Backends.Postgres.Dispatcher.water_tick_received()
     end
 
     {:noreply, state}

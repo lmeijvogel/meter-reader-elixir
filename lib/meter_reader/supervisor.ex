@@ -12,7 +12,6 @@ defmodule MeterReader.Supervisor do
     children = [
       {MyXQL, myqxl_config()},
       {Redix, redix_config()},
-      {Backends.Postgres.ProdEnabledStore, true},
       {MeterReader.WaterTickStore, get_start_data: is_prod},
       {MeterReader.P1MessageStore, :ok},
       {Backends.RedisBackend, Application.get_env(:meter_reader, :redis)},

@@ -16,8 +16,6 @@ defmodule MeterReader.PostgresSupervisor do
        start: !test_mode}
     ]
 
-    Backends.Postgres.ProdEnabledStore.enable()
-
     Supervisor.init(children, strategy: :one_for_one, name: __MODULE__)
   end
 end

@@ -49,11 +49,7 @@ defmodule Backends.Postgres.Backend do
       5
     ]
 
-    if enabled?() do
-      Postgrex.query(:meter_reader_postgrex, query, params)
-    else
-      Logger.debug("Postgres.Backend.store_water: enabled == false, not writing")
-    end
+    Postgrex.query(:meter_reader_postgrex, query, params)
 
     {:reply, :ok, state}
   end
@@ -83,11 +79,7 @@ defmodule Backends.Postgres.Backend do
         SET generation_wh = EXCLUDED.generation_wh
       """
 
-      if enabled?() do
-        {:ok, _result} = Postgrex.query(:meter_reader_postgrex, query, params)
-      else
-        Logger.debug("Postgres.Backend.store_solaredge: enabled == false, not writing")
-      end
+      {:ok, _result} = Postgrex.query(:meter_reader_postgrex, query, params)
     else
       Logger.debug("Postgres.Backend: No new SolarEdge entries")
     end
@@ -130,11 +122,7 @@ defmodule Backends.Postgres.Backend do
       round(p1_message.gas * 1000)
     ]
 
-    if enabled?() do
-      {:ok, _} = Postgrex.query(:meter_reader_postgrex, query, params)
-    else
-      Logger.debug("Postgres.Backend.store_gas: enabled == false, not writing")
-    end
+    {:ok, _} = Postgrex.query(:meter_reader_postgrex, query, params)
 
     :ok
   end
@@ -149,16 +137,8 @@ defmodule Backends.Postgres.Backend do
       round((p1_message.levering_dal + p1_message.levering_piek) * 1000)
     ]
 
-    if enabled?() do
-      {:ok, _} = Postgrex.query(:meter_reader_postgrex, query, params)
-    else
-      Logger.debug("Postgres.Backend.store_power: enabled == false, not writing")
-    end
+    {:ok, _} = Postgrex.query(:meter_reader_postgrex, query, params)
 
     :ok
-  end
-
-  defp enabled? do
-    Backends.Postgres.ProdEnabledStore.enabled?()
   end
 end
