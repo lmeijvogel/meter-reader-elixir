@@ -8,8 +8,8 @@ defmodule MeterReader.P1Message do
   return a complete message when all processing is done.
 
   To make this work, `decode` either returns
-  - {:waiting,%{}} which means that we're waiting for a message to start.
-  - {:added, decoded_message} which means that we're in progress but line was added,
+  - :waiting, which means that we're waiting for a message to start.
+  - {:added, decoded_message}, which means that we're in progress and a line was added,
   - {:done, decoded_message}, which means that the message is complete. `decoded_message` can be used.
   """
   alias MeterReader.P1Message
@@ -24,35 +24,46 @@ defmodule MeterReader.P1Message do
             gas: nil,
             contains_start?: false
 
-  def decode("", _, state, _now) do
-    {:added, state}
+  def decode("", _, partial_message, _now) do
+    {:added, partial_message}
   end
 
-  def decode(line, message_start_marker, state, now) do
+  # When we're building a message (i.e. we received a start marker and are receiving lines)
+  # We do return the partial message, but that is only intended for state-keeping, and
+  # is not intended to be used outside this module.
+  #
+  # Only when we return {:done, message}, the message is valid for use.
+  def decode(line, message_start_marker, partial_message, now) do
+    trimmed_line = String.trim(line)
+
     cond do
       # The message start marker starts with `/` and a known string
+      # We only return the message when it 
       # We add a 'full_message' field so the client can validate that it indeed received a message
       # built from a whole message (not started halfway)
-      String.starts_with?(line, message_start_marker) ->
+      String.starts_with?(trimmed_line, message_start_marker) ->
         {:added, %P1Message{contains_start?: true}}
 
-      !state.contains_start? ->
-        {:waiting, %P1Message{}}
+      # If we didn't get the message start and the message was not started yet
+      # keep waiting until we do get a message start.
+      !partial_message.contains_start? ->
+        :waiting
 
       # The message end marker starts with `!` and a random string of 4 alphanumeric chars.
-      String.starts_with?(line, "!") ->
-        {:done, state}
+      # If we also have a message start, then this is a complete message and we can return it.
+      String.starts_with?(trimmed_line, "!") ->
+        {:done, partial_message}
 
       true ->
-        [field | values] = String.split(line, ~r{[()]}, trim: true)
+        [field | values] = String.split(trimmed_line, ~r{[()]}, trim: true)
 
-        case parse_parts(field, values, state, now) do
+        case parse_parts(field, values, partial_message, now) do
           {:ok, updated_state} ->
             {:added, updated_state}
 
           _ ->
             Logger.warning("Invalid P1 message part for #{field}: #{values}.")
-            {:error, %P1Message{}}
+            :error
         end
     end
   end
@@ -78,7 +89,7 @@ defmodule MeterReader.P1Message do
     end
   end
 
-  defp parse_parts("0-0:1.0.0", inputs, state, now) do
+  defp parse_parts("0-0:1.0.0", inputs, partial_message, now) do
     try do
       raw_value = Enum.at(inputs, 0)
 
@@ -105,10 +116,10 @@ defmodule MeterReader.P1Message do
           timestamp =
             parse_timestamp(DateTime.from_naive(naive_timestamp, "Europe/Amsterdam"), now)
 
-          {:ok, %P1Message{state | timestamp: timestamp}}
+          {:ok, %P1Message{partial_message | timestamp: timestamp}}
 
         _ ->
-          {:error, state}
+          {:error, partial_message}
       end
     rescue
       _ ->
@@ -116,44 +127,44 @@ defmodule MeterReader.P1Message do
     end
   end
 
-  defp parse_parts("1-0:2.7.0", inputs, state, _now) do
+  defp parse_parts("1-0:2.7.0", inputs, partial_message, _now) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
-    {:ok, %P1Message{state | levering_current: value * 1000}}
+    {:ok, %P1Message{partial_message | levering_current: value * 1000}}
   end
 
-  defp parse_parts("1-0:2.8.1", inputs, state, _now) do
+  defp parse_parts("1-0:2.8.1", inputs, partial_message, _now) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
 
-    {:ok, %P1Message{state | levering_dal: value}}
+    {:ok, %P1Message{partial_message | levering_dal: value}}
   end
 
-  defp parse_parts("1-0:2.8.2", inputs, state, _now) do
+  defp parse_parts("1-0:2.8.2", inputs, partial_message, _now) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
-    {:ok, %P1Message{state | levering_piek: value}}
+    {:ok, %P1Message{partial_message | levering_piek: value}}
   end
 
-  defp parse_parts("1-0:1.7.0", inputs, state, _now) do
+  defp parse_parts("1-0:1.7.0", inputs, partial_message, _now) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
-    {:ok, %P1Message{state | stroom_current: value * 1000}}
+    {:ok, %P1Message{partial_message | stroom_current: value * 1000}}
   end
 
-  defp parse_parts("1-0:1.8.1", inputs, state, _now) do
+  defp parse_parts("1-0:1.8.1", inputs, partial_message, _now) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
-    {:ok, %P1Message{state | stroom_dal: value}}
+    {:ok, %P1Message{partial_message | stroom_dal: value}}
   end
 
-  defp parse_parts("1-0:1.8.2", inputs, state, _now) do
+  defp parse_parts("1-0:1.8.2", inputs, partial_message, _now) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 0))
-    {:ok, %P1Message{state | stroom_piek: value}}
+    {:ok, %P1Message{partial_message | stroom_piek: value}}
   end
 
-  defp parse_parts("0-1:24.2.1", inputs, state, _now) do
+  defp parse_parts("0-1:24.2.1", inputs, partial_message, _now) do
     {value, _suffix} = Float.parse(Enum.at(inputs, 1))
-    {:ok, %P1Message{state | gas: value}}
+    {:ok, %P1Message{partial_message | gas: value}}
   end
 
-  defp parse_parts(_, _, state, _now) do
-    {:ok, state}
+  defp parse_parts(_, _, partial_message, _now) do
+    {:ok, partial_message}
   end
 
   defp parse_timestamp({:ok, date}, _now) do

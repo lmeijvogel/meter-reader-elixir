@@ -11,7 +11,7 @@ defmodule MeterReader.P1Reader do
       Process.send_after(self(), :open_port, 0)
     end
 
-    {:ok, %{uart_pid: uart_pid, p1_config: p1_config, decoded_message: %{}}}
+    {:ok, %{uart_pid: uart_pid, p1_config: p1_config}}
   end
 
   def start_link(opts) do
@@ -44,28 +44,24 @@ defmodule MeterReader.P1Reader do
   end
 
   def handle_info({:circuits_uart, _uart_port, data}, state) do
-    {response, decoded_message} =
-      MeterReader.P1Message.decode(
-        data,
-        state.p1_config[:message_start_marker],
-        state.decoded_message,
-        DateTime.now!("Europe/Amsterdam")
-      )
+    case MeterReader.P1MessageDecoder.parse_line(data) do
+      {:done, message} ->
+        previous_message = MeterReader.P1MessageStore.get()
 
-    if response == :done do
-      previous_message = MeterReader.P1MessageStore.get()
+        if MeterReader.P1Message.valid?(message, previous_message) do
+          MeterReader.P1MessageStore.set(message)
 
-      if MeterReader.P1Message.valid?(decoded_message, previous_message) do
-        MeterReader.P1MessageStore.set(decoded_message)
+          Backends.RedisBackend.p1_message_received(message)
+        else
+          Logger.warning("P1Reader: Dropping invalid message")
+          Logger.debug("Current:  #{message |> inspect}")
+          Logger.debug("Previous: #{previous_message |> inspect}")
+        end
 
-        Backends.RedisBackend.p1_message_received(decoded_message)
-      else
-        Logger.warning("P1Reader: Dropping invalid message")
-        Logger.debug("Current:  #{decoded_message |> inspect}")
-        Logger.debug("Previous: #{previous_message |> inspect}")
-      end
+      _ ->
+        nil
     end
 
-    {:noreply, Map.put(state, :decoded_message, decoded_message)}
+    {:noreply, state}
   end
 end

@@ -19,6 +19,7 @@ defmodule MeterReader.Supervisor do
       {MeterReader.MysqlSupervisor, test_mode?()},
       {MeterReader.PostgresSupervisor, test_mode?()},
       {MeterReader.WaterReader, water_reader_config()},
+      {MeterReader.P1MessageDecoder, p1_reader_config()[:message_start_marker]},
       {MeterReader.P1Reader, p1_reader_config()},
       {MeterReader.SolarEdgeReader,
        Application.get_env(:meter_reader, :solar_edge) ++ [start: is_prod]},
